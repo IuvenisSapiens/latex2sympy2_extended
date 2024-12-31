@@ -136,7 +136,7 @@ set_real(False)
 
 ## Contributing
 
-If you want to add a new grammar, you can fork the code from [OrangeX4/latex2sympy](https://github.com/OrangeX4/latex2sympy).
+If you want to add a new grammar, you can fork the code from [hynky1999/latex2sympy2_extended](https://github.com/hynky1999/latex2sympy2_extended).
 
 * To modify parser grammar, view the existing structure in `src/latex2sympy2_extended/PS.g4`.
 * To modify the action associated with each grammar, look into `src/latex2sympy2_extended/latex2sympy2.py`.
