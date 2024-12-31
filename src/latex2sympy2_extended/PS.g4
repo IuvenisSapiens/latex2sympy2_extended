@@ -208,10 +208,10 @@ E_NOTATION: NUMBER E_NOTATION_E (SUB | ADD)? DIGIT+;
 IN: '\\in';
 ASSIGNMENT: '=' | '≃' | '≅' | '≈' | '≡' | '≣' | '≟' | '≎' | '≏' | '≐' | '≑' | '≒' | '≓' | '≔' | '≕' | '≖' | '≗';
 EQUAL: '==' | '\\equiv';
-LT: '<' | '≪' | '≺' | '⋖';
-LTE: '\\leq' | '\\le' | '\\leqslant' | '≤' | '≦' | '≲' | '≾';
-GT: '>' | '≫' | '≻' | '⋗';
-GTE: '\\geq' | '\\ge' | '\\geqslant' | '≥' | '≧' | '≳' | '≿';
+LT: '<' | '≪' | '≺' | '⋖' | '\\lt';
+LTE: '\\leq' | '\\le' | '\\leqslant' | '≤' | '≦' | '≲' | '≾' | '<=';
+GT: '>' | '≫' | '≻' | '⋗' | '\\gt';
+GTE: '\\geq' | '\\ge' | '\\geqslant' | '≥' | '≧' | '≳' | '≿' | '>=';
 UNEQUAL: '!=' | '!==' | '\\ne' | '\\neq' | '\\not\\equiv' | '≠' | '≁' | '≄' | '≇' | '≉' | '≢';
 
 BANG: '!';
@@ -325,8 +325,15 @@ fragment VARIABLE_CMD: '\\variable';
 fragment VARIABLE_SYMBOL: (GREEK_CMD | OTHER_SYMBOL_CMD | LETTER | DIGIT)+ (UNDERSCORE ((L_BRACE (GREEK_CMD | OTHER_SYMBOL_CMD | LETTER | DIGIT | COMMA)+ R_BRACE) | (GREEK_CMD | OTHER_SYMBOL_CMD | LETTER | DIGIT)))?;
 VARIABLE: VARIABLE_CMD L_BRACE VARIABLE_SYMBOL R_BRACE PERCENT_SIGN?;
 
+SET_NATURALS: '\\mathbb{N}' | 'ℕ';
+SET_INTEGERS: '\\mathbb{Z}' | 'ℤ';
+SET_RATIONALS: '\\mathbb{Q}' | 'ℚ';
+SET_REALS: '\\mathbb{R}' | 'ℝ';
+SET_COMPLEX: '\\mathbb{C}' | 'ℂ';
+SET_PRIMES: '\\mathbb{P}' | 'ℙ';
+
 //collection of accents
-accent_symbol:
+fragment ACCENT_CMD:
     '\\acute'  |
     '\\bar'  |
     '\\overline'  |
@@ -345,6 +352,8 @@ accent_symbol:
     '\\boldsymbol'  |
     '\\text'  |
     '\\textit'  |
+    '\\textbf'  |
+    '\\textnormal'  |
     '\\mathbb'  |
     '\\mathbin'  |
     '\\mathbf'  |
@@ -367,19 +376,16 @@ accent_symbol:
     '\\mathscr'  |
     '\\mathsf'  |
     '\\mathsterling'  |
-    '\\mathtt';
+    '\\mathtt' |
+    '\\mbox';
+
+ACCENT: ACCENT_CMD WS_CHAR? L_BRACE ('\\}' | ~[}])*? R_BRACE;
 
 // Set operations (small subsetion)
 UNION: '\\cup' | '∪';
 INTERSECTION: '\\cap' | '∩';
 SET_MINUS: '\\setminus' | '∖';
 PLUS_MINUS: '\\pm' | '±' | '∓' | '\\mp';
-SET_NATURALS: '\\mathbb{N}' | 'ℕ';
-SET_INTEGERS: '\\mathbb{Z}' | 'ℤ';
-SET_RATIONALS: '\\mathbb{Q}' | 'ℚ';
-SET_REALS: '\\mathbb{R}' | 'ℝ';
-SET_COMPLEX: '\\mathbb{C}' | 'ℂ';
-SET_PRIMES: '\\mathbb{P}' | 'ℙ';
 // We can't add {} to the empty set as otherwise any empty braces will be lexed as empty set
 SET_EMPTY: '\\emptyset' | '∅' | L_BRACE_VISUAL R_BRACE_VISUAL | L_BRACE_CMD R_BRACE_CMD;
 
@@ -393,7 +399,8 @@ NOTIN: '\\notin' | '∉';
 // We also have set elements so that 1,2,3,4 is parsed as a set
 math: relation | relation_list | set_relation | set_elements;
 
-transpose: '^T' | '^{T}' |  '^{\\top}' | '\'';
+transpose: '^T' | '^{T}' |  '^{\\\top}' | '\'';
+degree: '^\\circ' | '^\\degree' | '^\\circle' | '^°' | '^{\\circ}' | '^{\\degree}' | '^{\\circle}' | '^{°}';
 
 transform_atom: LETTER_NO_E UNDERSCORE (NUMBER | L_BRACE NUMBER R_BRACE);
 transform_scale: (expr | group | ADD | SUB) transform_atom;
@@ -456,7 +463,7 @@ unary_nofunc:
 
 postfix: exp postfix_op*;
 postfix_nofunc: exp_nofunc postfix_op*;
-postfix_op: BANG | eval_at | transpose;
+postfix_op: BANG | eval_at | transpose | degree;
 
 eval_at:
     BAR (eval_at_sup | eval_at_sub | eval_at_sup eval_at_sub);
@@ -547,17 +554,11 @@ ceil_group:
     | UL_CORNER expr UR_CORNER;
 
 
-//indicate an accent
-accent:
-    accent_symbol
-    L_BRACE base=expr R_BRACE;
 
-atom_expr_no_supexpr: (LETTER_NO_E | GREEK_CMD | OTHER_SYMBOL_CMD | accent) subexpr?;
-atom_expr: (LETTER_NO_E | GREEK_CMD | OTHER_SYMBOL_CMD | accent) (supexpr subexpr | subexpr supexpr | subexpr | supexpr)?;
-atom: atom_expr | SYMBOL | NUMBER | PERCENT_NUMBER | E_NOTATION | DIFFERENTIAL | mathit | VARIABLE;
 
-mathit: CMD_MATHIT L_BRACE mathit_text R_BRACE;
-mathit_text: (LETTER_NO_E | E_NOTATION_E | EXP_E)+;
+atom_expr_no_supexpr: (LETTER_NO_E | GREEK_CMD | OTHER_SYMBOL_CMD | ACCENT) subexpr?;
+atom_expr: (LETTER_NO_E | GREEK_CMD | OTHER_SYMBOL_CMD | ACCENT) (supexpr subexpr | subexpr supexpr | subexpr | supexpr)?;
+atom: atom_expr | SYMBOL | NUMBER | PERCENT_NUMBER | E_NOTATION | DIFFERENTIAL | VARIABLE;
 
 frac:
     CMD_FRAC L_BRACE
@@ -611,7 +612,6 @@ func:
     (subexpr? supexpr? | supexpr? subexpr?)
     (
         L_PAREN func_single_arg R_PAREN |
-        L_BRACE func_single_arg R_BRACE |
         func_single_arg_noparens
     )
     
@@ -619,13 +619,14 @@ func:
     (subexpr? supexpr? | supexpr? subexpr?)
     (
         L_PAREN func_multi_arg R_PAREN |
-        L_BRACE func_multi_arg R_BRACE |
         func_multi_arg_noparens
     )
     | atom_expr_no_supexpr supexpr?
     (
         L_PAREN func_common_args R_PAREN |
-        L_BRACE L_PAREN func_common_args R_PAREN R_BRACE
+        L_BRACKET func_common_args R_BRACKET |
+        L_BRACE L_PAREN func_common_args R_PAREN R_BRACE |
+        L_BRACE L_BRACKET func_common_args R_BRACKET R_BRACE
     )
     | FUNC_INT
     (subexpr supexpr | supexpr subexpr | (UNDERSCORE L_BRACE R_BRACE) (CARET L_BRACE R_BRACE) | (CARET L_BRACE R_BRACE) (UNDERSCORE L_BRACE R_BRACE) )?
@@ -692,15 +693,16 @@ set_atom:
     finite_set;
 
 interval:
-    (L_BRACKET | L_PAREN | L_BRACK | L_GROUP) 
+    (L_BRACKET | L_PAREN | L_PAREN_VISUAL | L_BRACK | L_GROUP) 
     expr COMMA expr 
-    (R_BRACKET | R_PAREN | R_BRACK | R_GROUP);
+    (R_BRACKET | R_PAREN | R_PAREN_VISUAL | R_BRACK | R_GROUP);
 
 // Allow all kinds of surrounding braces
 // We don't make disctionction between set and ordered tuples
 finite_set:
     (L_BRACE set_elements R_BRACE) |
     (L_PAREN set_elements R_PAREN) |
+    (L_PAREN_VISUAL set_elements R_PAREN_VISUAL) |
     (L_BRACKET set_elements R_BRACKET) |
     (L_BRACE_VISUAL set_elements R_BRACE_VISUAL);
 

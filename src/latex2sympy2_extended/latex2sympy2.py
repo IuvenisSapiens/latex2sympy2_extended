@@ -4,6 +4,7 @@ from sympy import Basic, Matrix, MatrixBase, Pow, Rational, matrix_symbols, simp
 from antlr4 import InputStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
 from latex2sympy2_extended.symbols import get_symbol
+from latex2sympy2_extended.math_normalization import normalize_latex, NormalizationConfig
 
 from latex2sympy2_extended.gen.PSParser import PSParser
 from latex2sympy2_extended.gen.PSLexer import PSLexer
@@ -29,23 +30,6 @@ class _Latex2Sympy:
         self.variances = {}  # For substituting
         self.var = {var:val if isinstance(val, Basic) or isinstance(val, MatrixBase) else parse_expr(val) for var, val in variable_values.items()} if variable_values else {}
         
-    def _prepare_latex_string(self, latex_str: str):
-        """Prepare latex string with necessary replacements"""
-        # Translate Transpose
-        latex_str = latex_str.replace(r'\mathrm{T}', 'T', -1)
-        # Translate Derivative
-        latex_str = latex_str.replace(r'\mathrm{d}', 'd', -1).replace(r'{\rm d}', 'd', -1)
-        # Translate Matrix
-        latex_str = latex_str.replace(r'\left[\begin{matrix}', r'\begin{bmatrix}', -1).replace(r'\end{matrix}\right]', r'\end{bmatrix}', -1)
-        # Translate Permutation
-        latex_str = re.sub(r"\(([a-zA-Z0-9+\-*/\\ ]+?)\)_{([a-zA-Z0-9+\-*/\\ ]+?)}", r"\\frac{(\1)!}{((\1)-(\2))!}", latex_str)
-        # Remove \displaystyle
-        latex_str = latex_str.replace(r'\displaystyle', ' ', -1)
-        # Remove \left and \right, we could handle this in grammar but it's annoying
-        latex_str = r_left.sub(r'\1', latex_str)
-        latex_str = r_right.sub(r'\1', latex_str)
-        return latex_str
-
     def create_parser(self, latex_str):
         """Create parser for latex string"""
         stream = InputStream(latex_str)
@@ -239,8 +223,8 @@ class _Latex2Sympy:
         raise Exception('Unrecognized set atom')
 
     def convert_interval(self, expr):
-        left_open = expr.L_PAREN() is not None or expr.L_GROUP() is not None
-        right_open = expr.R_PAREN() is not None or expr.R_GROUP() is not None
+        left_open = expr.L_PAREN() is not None or expr.L_GROUP() is not None or expr.L_PAREN_VISUAL() is not None
+        right_open = expr.R_PAREN() is not None or expr.R_GROUP() is not None or expr.R_PAREN_VISUAL() is not None
 
         left = self.convert_expr(expr.expr()[0])
         right = self.convert_expr(expr.expr()[1])
@@ -620,6 +604,11 @@ class _Latex2Sympy:
                     except:
                         pass
                     pass
+            elif op.degree():
+                try:
+                    exp = sympy.Mul(exp, sympy.pi/180)
+                except:
+                    pass
 
         return exp
 
@@ -651,6 +640,8 @@ class _Latex2Sympy:
     def convert_comp(self, comp):
         if comp.group():
             return self.convert_expr(comp.group().expr())
+        elif comp.formatting_group():
+            return self.convert_expr(comp.formatting_group().expr())
         elif comp.norm_group():
             return self.convert_expr(comp.norm_group().expr()).norm()
         elif comp.abs_group():
@@ -688,21 +679,26 @@ class _Latex2Sympy:
                 atom_text = atom_expr.GREEK_CMD().getText()
             elif atom_expr.OTHER_SYMBOL_CMD():
                 atom_text = atom_expr.OTHER_SYMBOL_CMD().getText()
-            elif atom_expr.accent():
-                atom_accent = atom_expr.accent()
-                # get name for accent
-                name = atom_accent.start.text[1:]
+            elif atom_expr.ACCENT():
+                atom_text = atom_expr.ACCENT().getText()
+                # Remove the command by striping first { and last }
+                text_start = atom_text.index('{')
+                accent_name = atom_text[1:text_start]
+                accent_text = atom_text[text_start + 1:-1]
+
                 # exception: check if bar or overline which are treated both as bar
-                if name in ["bar", "overline"]:
-                    name = "bar"
-                if name in ["vec", "overrightarrow"]:
-                    name = "vec"
-                if name in ["tilde", "widetilde"]:
-                    name = "tilde"
-                # get the base (variable)
-                base = atom_accent.base.getText()
-                # set string to base+name
-                atom_text = name + '{' + base + '}'
+                if accent_name in ["bar", "overline"]:
+                    accent_name = "bar"
+                elif accent_name in ["vec", "overrightarrow"]:
+                    accent_name = "vec"
+                elif accent_name in ["tilde", "widetilde"]:
+                    accent_name = "tilde"
+                elif "text" in accent_name:
+                    accent_name = "text"
+                elif "math" in accent_name:
+                    accent_name = "math"
+                
+                atom_text = f"{accent_name}{{{accent_text}}}"
 
             # find atom's subscript, if any
             subscript_text = ''
@@ -760,21 +756,18 @@ class _Latex2Sympy:
         elif atom.DIFFERENTIAL():
             diff_var = self.get_differential_var(atom.DIFFERENTIAL())
             return sympy.Symbol('d' + diff_var.name, real=self.is_real)
-        elif atom.mathit():
-            text = self.rule2text(atom.mathit().mathit_text())
-            return sympy.Symbol(text, real=self.is_real)
         elif atom.VARIABLE():
             text = atom.VARIABLE().getText()
             is_percent = text.endswith("\\%")
             trim_amount = 3 if is_percent else 1
-            name = text[10:]
-            name = name[0:len(name) - trim_amount]
+            atom_text = text[10:]
+            atom_text = atom_text[0:len(atom_text) - trim_amount]
 
             # replace the variable for already known variable values
-            if name in self.var:
-                symbol = self.var[name]
+            if atom_text in self.var:
+                symbol = self.var[atom_text]
             else:
-                symbol = sympy.Symbol(name, real=self.is_real)
+                symbol = sympy.Symbol(atom_text, real=self.is_real)
 
             if is_percent:
                 return sympy.Mul(symbol, Rational(1, 100))
@@ -1215,25 +1208,8 @@ class _Latex2Sympy:
 # Common regex
 
 
-def latex2sympy(latex_str: str, variable_values: dict | None = None, is_real=None):
+def latex2sympy(latex_str: str, variable_values: dict | None = None, is_real=None, config: NormalizationConfig | None = NormalizationConfig(basic_latex=True, units=False, malformed_operators=False, nits=False, boxed=False, equations=False)):
     converter = _Latex2Sympy(variable_values, is_real)
-    latex_str = converter._prepare_latex_string(latex_str)
+    if config is not None:
+        latex_str = normalize_latex(latex_str, config)
     return converter.parse(latex_str)
-
-if __name__ == '__main__':
-    # latex2latex(r'A_1=\begin{bmatrix}1 & 2 & 3 & 4 \\ 5 & 6 & 7 & 8\end{bmatrix}')
-    # latex2latex(r'b_1=\begin{bmatrix}1 \\ 2 \\ 3 \\ 4\end{bmatrix}')
-    # tex = r"(x+2)|_{x=y+1}"
-    # tex = r"\operatorname{zeros}(3)"
-    # tex = r"\operatorname{rows}(\begin{bmatrix}1 & 2 \\ 3 & 4\end{bmatrix})"
-    tex = r"{1,2,3,4} \cap {5,6,7,8}"
-    # print("latex2latex:", latex2latex(tex))
-    math = latex2sympy(tex)
-    print(type(math))
-    # math = math.subs(variances)
-    print("latex:", tex)
-    # print("var:", variances)
-    print("raw_math:", math)
-    # print("math:", latex(math.doit()))
-    # print("math_type:", type(math.doit()))
-    # print("shape:", (math.doit()).shape)
