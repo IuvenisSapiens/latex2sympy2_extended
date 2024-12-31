@@ -1,16 +1,14 @@
 ![Logo](https://picgo-1258602555.cos.ap-nanjing.myqcloud.com/icon.png)
 
-# [latex2sympy2](https://github.com/OrangeX4/latex2sympy)
+# [latex2sympy2_extended](https://github.com/hynky1999/latex2sympy2_extended)
 
 ## About
 
-`latex2sympy2` parses **LaTeX math expressions** and converts it into the equivalent **SymPy form**. The latex2sympy2 is adapted from [augustt198/latex2sympy](https://github.com/augustt198/latex2sympy) and [purdue-tlt / latex2sympy](https://github.com/purdue-tlt/latex2sympy).
+`latex2sympy2_extended` parses **LaTeX math expressions** and converts it into the equivalent **SymPy form**. The latex2sympy2_extended is adapted from [OrangeX4/latex2sympy](https://github.com/OrangeX4/latex2sympy).
 
-This project is a part of a VS Code extension called [Latex Sympy Calculator](https://marketplace.visualstudio.com/items?itemName=OrangeX4.latex-sympy-calculator). It is designed for providing people writing in latex or markdown a ability to calculate something when writing math expression.
-
-[ANTLR](http://www.antlr.org/) is used to generate the parser.
-
+[ANTLR](http://www.antlr.org/) 4.13.1 is used to generate the parser.
 ## Features
+
 
 * **Arithmetic:** Add (+), Sub (-), Dot Mul (·), Cross Mul (×), Frac (/), Power (^), Abs (|x|), Sqrt (√), etc...
 * **Alphabet:** a - z, A - Z, α - ω, Subscript (x_1), Accent Bar(ā), etc...
@@ -26,7 +24,7 @@ This project is a part of a VS Code extension called [Latex Sympy Calculator](ht
 ## Installation
 
 ```
-pip install latex2sympy2
+pip install latex2sympy2_extended
 ```
 
 **Requirements:** `sympy` and `antlr4-python3-runtime` packages.
@@ -38,14 +36,11 @@ pip install latex2sympy2
 In Python:
 
 ```python
-from latex2sympy2 import latex2sympy, latex2latex
+from latex2sympy2_extended import latex2sympy
 
 tex = r"\frac{d}{dx}(x^{2}+x)"
-# Or you can use '\mathrm{d}' to replace 'd'
 latex2sympy(tex)
 # => "Derivative(x**2 + x, x)"
-latex2latex(tex)
-# => "2 x + 1"
 ```
 
 ### Examples
@@ -58,17 +53,6 @@ latex2latex(tex)
 |`\int_{a}^{b} \frac{dt}{t}`|`Integral(1/t, (t, a, b))`|`-\log{(a)} + \log{(b)}` $-\log{(a)} + \log{(b)}$|
 |`(2x^3 - x + z)|_{x=3}` $(2x^3 - x + z)\|_{x=3}$|`z + 51`| `z + 51` $z + 51$ |
 
-If you want to read the math formula, you can click [GitNotes](https://notes.orangex4.cool/?git=github&github=OrangeX4/latex2sympy).
-
-### Solve Equation
-
-``` latex
-# Before
-x + y = 1
-
-# After
-[ y = 1 - x, \  x = 1 - y]
-```
 
 ### Eval At
 
@@ -81,14 +65,6 @@ y + 3
 ```
 
 ### Matrix
-
-#### Identity matrix
-
-```
-tex = r"\bm{I}_3"
-latex2sympy(tex)
-# => "Matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])"
-```
 
 #### Determinant
 
@@ -149,35 +125,6 @@ latex2sympy(tex)
 # => "Matrix([[2, 4, 6], [12, 15, 18], [28, 32, 36]])"
 ```
 
-### Variances
-
-``` python
-from latex2sympy2 import latex2sympy, variances, var, set_variances
-
-# Assign x a value of 1
-latex2sympy(r"x = 1")
-
-# Assign x a matrix symbol with dimension of n x m
-latex2sympy(r"x \in \mathbb{R}^{n \times m}")
-
-# Calculate x + y
-latex2sympy(r"x + y")
-# => "y + 1"
-
-# Get all variances
-print(variances)
-# => "{x: 1}"
-
-# Get variance of "x"
-print(var["x"])
-# => "1"
-
-# Reset all variances
-set_variances({})
-latex2sympy(r"x + y")
-# => "x + y"
-```
-
 ### Complex Number Support
 
 ``` python
@@ -191,7 +138,7 @@ set_real(False)
 
 If you want to add a new grammar, you can fork the code from [OrangeX4/latex2sympy](https://github.com/OrangeX4/latex2sympy).
 
-* To modify parser grammar, view the existing structure in `PS.g4`.
-* To modify the action associated with each grammar, look into `latex2sympy.py`.
+* To modify parser grammar, view the existing structure in `src/latex2sympy2_extended/PS.g4`.
+* To modify the action associated with each grammar, look into `src/latex2sympy2_extended/latex2sympy2.py`.
 
 Contributors are welcome! Feel free to open a pull request or an issue.

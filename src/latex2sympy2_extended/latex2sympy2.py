@@ -1123,13 +1123,13 @@ class _Latex2Sympy:
     def handle_limit(self, func):
         sub = func.limit_sub()
         if sub.LETTER_NO_E():
-            var = sympy.Symbol(sub.LETTER_NO_E().getText(), real=self.is_real)
+            sub_var = sympy.Symbol(sub.LETTER_NO_E().getText(), real=self.is_real)
         elif sub.GREEK_CMD():
-            var = get_symbol(sub.GREEK_CMD().getText().strip(), self.is_real)
+            sub_var = get_symbol(sub.GREEK_CMD().getText().strip(), self.is_real)
         elif sub.OTHER_SYMBOL_CMD():
-            var = get_symbol(sub.OTHER_SYMBOL_CMD().getText().strip(), self.is_real)
+            sub_var = get_symbol(sub.OTHER_SYMBOL_CMD().getText().strip(), self.is_real)
         else:
-            var = sympy.Symbol('x', real=self.is_real)
+            sub_var = sympy.Symbol('x', real=self.is_real)
         if sub.SUB():
             direction = "-"
         else:
@@ -1137,7 +1137,7 @@ class _Latex2Sympy:
         approaching = self.convert_expr(sub.expr())
         content = self.convert_mp(func.mp())
 
-        return sympy.Limit(content, var, approaching, direction)
+        return sympy.Limit(content, sub_var, approaching, direction)
 
 
     def handle_exp(self, func):
