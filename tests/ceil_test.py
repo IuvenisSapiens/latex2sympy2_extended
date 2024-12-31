@@ -1,6 +1,7 @@
-from .context import assert_equal, get_simple_examples
 import pytest
+from latex2sympy2_extended import latex2sympy
 from sympy import ceiling
+from tests.context import assert_equal, get_simple_examples
 
 examples = get_simple_examples(ceiling)
 

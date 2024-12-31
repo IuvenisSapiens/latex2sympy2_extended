@@ -1,10 +1,11 @@
-from .context import assert_equal
 import pytest
+from latex2sympy2_extended import latex2sympy
 from sympy import Symbol
+from tests.context import assert_equal
 
-epsilon_upper = Symbol('char"000190', real=True)
-epsilon_lower = Symbol('epsilon', real=True)
-varepsilon = Symbol('varepsilon', real=True)
+epsilon_upper = Symbol('char"000190')
+epsilon_lower = Symbol('epsilon')
+varepsilon = Symbol('varepsilon')
 
 
 def test_greek_epsilon():

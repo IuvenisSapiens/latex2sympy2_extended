@@ -1,10 +1,10 @@
-from .context import assert_equal
+from tests.context import assert_equal
 import pytest
-from sympy import Symbol, Rational, Float, Min, sqrt, exp, pi, nsimplify
+from sympy import Number, Symbol, Rational, Float, Min, sqrt, exp, pi, nsimplify
 
-x = Symbol('x', real=True)
-y = Symbol('y', real=True)
-z = Symbol('z', real=True)
+x = Symbol('x')
+y = Symbol('y')
+z = Symbol('z')
 
 
 def test_min_usual():
@@ -53,9 +53,9 @@ def test_min_expr():
     assert_equal("\\min(58*9)", Min(58 * 9))
     assert_equal("\\min(1+6/3, -5)", Min(1 + Rational('6/3'), -5))
     assert_equal("\\min(7*4/5, 092) * 2", Min(7 * 4 / 5, 92) * 2)
-    assert_equal("38+\\min(13, 15-2.3)", 38 + Min(13, 15 - Rational('2.3')))
-    assert_equal("\\sqrt{\\min(99.9999999999999, 100)}", sqrt(Min(Rational('99.9999999999999'), 100)))
-    assert_equal("\\min(274/(5+2), \\exp(12.4), 1.4E2)", Min(Rational(274, 5 + 2), exp(Rational('12.4')), Rational('1.4E2')))
+    assert_equal("38+\\min(13, 15-2.3)", 38 + Min(13, 15 - Float('2.3'), evaluate=False))
+    assert_equal("\\sqrt{\\min(99.9999999999999, 100)}", sqrt(Min(Float('99.9999999999999'), 100)))
+    assert_equal("\\min(274/(5+2), \\exp(12.4), 1.4E2)", Min(Rational(274, 5 + 2), exp(Float('12.4')), Number('1.4E2')))
 
 
 def test_min_symbol():

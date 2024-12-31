@@ -130,3 +130,6 @@ appsettings.json
 local.settings.json
 .python_packages
 stemgen-solution-engine.zip
+
+# gen/
+src/latex2sympy2_extended/gen/

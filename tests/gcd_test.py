@@ -1,10 +1,11 @@
-from .context import assert_equal
 import pytest
+from latex2sympy2_extended import latex2sympy
 from sympy import Symbol, Rational, UnevaluatedExpr, gcd, igcd, sqrt, pi
+from tests.context import assert_equal, _Add, _Mul, _Pow
 
-x = Symbol('x', real=True)
-y = Symbol('y', real=True)
-z = Symbol('z', real=True)
+x = Symbol('x')
+y = Symbol('y')
+z = Symbol('z')
 
 
 def test_gcd_usual():

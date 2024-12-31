@@ -1,9 +1,10 @@
-from .context import assert_equal
 import pytest
+from latex2sympy2_extended import latex2sympy
 from sympy import exp, sin, Symbol, E
+from tests.context import assert_equal
 
-x = Symbol('x', real=True)
-y = Symbol('y', real=True)
+x = Symbol('x')
+y = Symbol('y')
 
 
 def test_exp_letter():

@@ -1,11 +1,12 @@
-from .context import assert_equal, _Add, _Mul, _Pow
 import pytest
+from latex2sympy2_extended import latex2sympy
 from sympy import binomial, Symbol
+from tests.context import assert_equal, _Add, _Mul, _Pow
 
-x = Symbol('x', real=True)
-y = Symbol('y', real=True)
-theta = Symbol('theta', real=True)
-gamma = Symbol('gamma', real=True)
+x = Symbol('x')
+y = Symbol('y')
+theta = Symbol('theta')
+gamma = Symbol('gamma')
 
 
 def test_binomial_numeric():
@@ -25,12 +26,12 @@ def test_binomial_expr():
 
 
 def test_choose_numeric():
-    assert_equal("\\choose{16}{2}", binomial(16, 2))
+    assert_equal("{16 \\choose 2}", binomial(16, 2))
 
 
 def test_choose_symbols():
-    assert_equal("\\choose{x}{y}", binomial(x, y))
+    assert_equal("{x \\choose y}", binomial(x, y))
 
 
 def test_choose_greek_symbols():
-    assert_equal("\\choose{\\theta}{\\gamma}", binomial(theta, gamma))
+    assert_equal("{\\theta \\choose \\gamma}", binomial(theta, gamma))

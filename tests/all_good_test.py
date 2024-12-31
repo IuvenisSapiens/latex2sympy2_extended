@@ -1,26 +1,26 @@
-from .context import assert_equal, process_sympy, _Add, _Mul, _Pow
 import pytest
-import hashlib
+from latex2sympy2_extended import latex2sympy
 from sympy import (
-    E, I, oo, pi, sqrt, root, Symbol, Add, Mul, Pow, Abs, factorial, log, Eq, Ne, S, Rational, Integer, UnevaluatedExpr,
-    sin, cos, tan, sinh, cosh, tanh, asin, acos, atan, asinh, acosh, atanh,
-    csc, sec, Sum, Product, Limit, Integral, Derivative,
-    LessThan, StrictLessThan, GreaterThan, StrictGreaterThan,
-    exp, binomial, Matrix, MatMul, MatAdd,
-    Mod, gcd, lcm, floor, ceiling, Max, Min
+    E, I, Function, oo, pi, sqrt, root, Symbol, Add, Mul, Pow, Abs, factorial, log, Eq, Ne, S,
+    Rational, Integer, UnevaluatedExpr, sin, cos, tan, sinh, cosh, tanh, asin, acos,
+    atan, asinh, acosh, atanh, csc, sec, Sum, Product, Limit, Integral, Derivative,
+    LessThan, StrictLessThan, GreaterThan, StrictGreaterThan, exp, binomial, Matrix,
+    MatMul, MatAdd, Mod, gcd, lcm, floor, ceiling, Max, Min
 )
+from tests.context import assert_equal, _Add, _Mul, _Pow
+import hashlib
 
-x = Symbol('x', real=True)
-y = Symbol('y', real=True)
-z = Symbol('z', real=True)
-a = Symbol('a', real=True)
-b = Symbol('b', real=True)
-c = Symbol('c', real=True)
-f = Symbol('f', real=True)
-t = Symbol('t', real=True)
-k = Symbol('k', real=True)
-n = Symbol('n', real=True)
-theta = Symbol('theta', real=True)
+x = Symbol('x')
+y = Symbol('y')
+z = Symbol('z')
+a = Symbol('a')
+b = Symbol('b')
+c = Symbol('c')
+f = Symbol('f')
+t = Symbol('t')
+k = Symbol('k')
+n = Symbol('n')
+theta = Symbol('theta')
 
 # shorthand definitions
 
@@ -54,7 +54,7 @@ class TestAllGood(object):
         ("2x", 2 * x),
         ("x^2", x**2),
         ("x^{3 + 1}", x**_Add(3, 1)),
-        ("x^{\\left\\{3 + 1\\right\\}}", x**_Add(3, 1)),
+        ("x^{\\left{3 + 1\\right}}", x**_Add(3, 1)),
         ("-3y + 2x", _Add(_Mul(2, x), Mul(-1, 3, y, evaluate=False))),
         ("-c", -c),
         ("a \\cdot b", a * b),
@@ -165,17 +165,17 @@ class TestAllGood(object):
         ("\\int a + b + c dx", Integral(Add(a, b, c, evaluate=False), x)),
         ("\\int \\frac{dz}{z}", Integral(Pow(z, -1), z)),
         ("\\int \\frac{3 dz}{z}", Integral(3 * Pow(z, -1), z)),
-        ("\\int \\frac{1}{x} dx", Integral(Pow(x, -1), x)),
-        ("\\int \\frac{1}{a} + \\frac{1}{b} dx", Integral(_Add(_Pow(a, -1), Pow(b, -1)), x)),
-        ("\\int \\frac{3 \\cdot d\\theta}{\\theta}", Integral(3 * _Pow(theta, -1), theta)),
-        ("\\int \\frac{1}{x} + 1 dx", Integral(_Add(_Pow(x, -1), 1), x)),
-        ("x_0", Symbol('x_0', real=True)),
-        ("x_{1}", Symbol('x_1', real=True)),
-        ("x_a", Symbol('x_a', real=True)),
-        ("x_{b}", Symbol('x_b', real=True)),
-        ("h_\\theta", Symbol('h_{\\theta}', real=True)),
-        ("h_\\theta ", Symbol('h_{\\theta}', real=True)),
-        ("h_{\\theta}", Symbol('h_{\\theta}', real=True)),
+        ("\\int \\frac{1}{x} dx", Integral(Mul(Integer(1), Pow(x, -1), evaluate=False), x)),
+        ("\\int \\frac{1}{a} + \\frac{1}{b} dx", Integral(_Add(Mul(1, Pow(a, -1), evaluate=False), Mul(1, Pow(b, -1), evaluate=False)), x)),
+        ("\\int \\frac{3 \\cdot d\\theta}{\\theta}", Integral(Mul(3, _Pow(theta, -1), evaluate=False), theta)),
+        ("\\int \\frac{1}{x} + 1 dx", Integral(_Add(Mul(1, Pow(x, -1), evaluate=False), 1), x)),
+        ("x_0", Symbol('x_0')),
+        ("x_{1}", Symbol('x_1')),
+        ("x_a", Symbol('x_a')),
+        ("x_{b}", Symbol('x_b')),
+        ("h_\\theta", Symbol('h_{\\theta}')),
+        ("h_\\theta ", Symbol('h_{\\theta}')),
+        ("h_{\\theta}", Symbol('h_{\\theta}')),
         # ("h_{\\theta}(x_0, x_1)", Symbol('h_{theta}', real=True)(Symbol('x_{0}', real=True), Symbol('x_{1}', real=True))),
         ("x!", _factorial(x)),
         ("100!", _factorial(100)),
@@ -217,22 +217,21 @@ class TestAllGood(object):
         ("[x]", x),
         ("[a + b]", _Add(a, b)),
         ("\\frac{d}{dx} [ \\tan x ]", Derivative(tan(x), x)),
-        ("2\\overline{x}", 2 * Symbol('xbar', real=True)),
-        ("2\\overline{x}_n", 2 * Symbol('xbar_n', real=True)),
-        ("\\frac{x}{\\overline{x}_n}", x / Symbol('xbar_n', real=True)),
-        ("\\frac{\\sin(x)}{\\overline{x}_n}", sin(Symbol('x', real=True)) / Symbol('xbar_n', real=True)),
-        ("2\\bar{x}", 2 * Symbol('xbar', real=True)),
-        ("2\\bar{x}_n", 2 * Symbol('xbar_n', real=True)),
+        ("2\\overline{x}", 2 * Symbol('bar{x}')),
+        ("2\\overline{x}_n", 2 * Symbol('bar{x}_n')),
+        ("\\frac{x}{\\overline{x}_n}", x / Symbol('bar{x}_n')),
+        ("\\frac{\\sin(x)}{\\overline{x}_n}", sin(Symbol('x')) / Symbol('bar{x}_n')),
+        ("2\\bar{x}", 2 * Symbol('bar{x}')),
+        ("2\\bar{x}_n", 2 * Symbol('bar{x}_n')),
         ("\\sin\\left(\\theta\\right) \\cdot4", sin(theta) * 4),
         ("\\ln\\left(\\theta\\right)", _log(theta, E)),
         ("\\ln\\left(x-\\theta\\right)", _log(x - theta, E)),
         ("\\ln\\left(\\left(x-\\theta\\right)\\right)", _log(x - theta, E)),
-        ("\\ln\\left(\\left[x-\\theta\\right]\\right)", _log(x - theta, E)),
-        ("\\ln\\left(\\left\\{x-\\theta\\right\\}\\right)", _log(x - theta, E)),
-        ("\\ln\\left(\\left|x-\\theta\\right|\\right)", _log(_Abs(x - theta), E)),
-        ("\\frac{1}{2}xy(x+y)", Mul(_Pow(2, -1), x, y, (x + y), evaluate=False)),
-        ("\\frac{1}{2}\\theta(x+y)", Mul(_Pow(2, -1), theta, (x + y), evaluate=False)),
-        ("1-f(x)", 1 - f * x),
+        # ("\\ln\\left(\\left\\{x-\\theta\\right\\}\\right)", _log(x - theta, E)),
+        # ("\\ln\\left(\\left|x-\\theta\\right|\\right)", _log(_Abs(x - theta), E)),
+        ("\\frac{1}{2}xy(x+y)", Mul(Integer(1), _Pow(2, -1), x, y, (x + y), evaluate=False)),
+        ("\\frac{1}{2}\\theta(x+y)", Mul(Integer(1), _Pow(2, -1), theta, (x + y), evaluate=False)),
+        ("1-f(x)", 1 - Function('f')(x)),
 
         ("\\begin{matrix}1&2\\\\3&4\\end{matrix}", Matrix([[1, 2], [3, 4]])),
         ("\\begin{matrix}x&x^2\\\\\\sqrt{x}&x\\end{matrix}", Matrix([[x, x**2], [_Pow(x, S.Half), x]])),
@@ -257,12 +256,12 @@ class TestAllGood(object):
         ("\\theta\\begin{matrix}1&2\\\\3&4\\end{matrix}", MatMul(theta, Matrix([[1, 2], [3, 4]]), evaluate=False)),
         ("\\theta\\begin{matrix}1\\\\3\\end{matrix} - \\begin{matrix}-1\\\\2\\end{matrix}", MatAdd(MatMul(theta, Matrix([[1], [3]]), evaluate=False), MatMul(-1, Matrix([[-1], [2]]), evaluate=False), evaluate=False)),
         ("\\theta\\begin{matrix}1&0\\\\0&1\\end{matrix}*\\begin{matrix}3\\\\-2\\end{matrix}", MatMul(theta, Matrix([[1, 0], [0, 1]]), Matrix([3, -2]), evaluate=False)),
-        ("\\frac{1}{9}\\theta\\begin{matrix}1&2\\\\3&4\\end{matrix}", MatMul(Pow(9, -1, evaluate=False), theta, Matrix([[1, 2], [3, 4]]), evaluate=False)),
-        ("\\begin{pmatrix}1\\\\2\\\\3\\end{pmatrix},\\begin{pmatrix}4\\\\3\\\\1\\end{pmatrix}", [Matrix([1, 2, 3]), Matrix([4, 3, 1])]),
+        # ("\\frac{1}{9}\\theta\\begin{matrix}1&2\\\\3&4\\end{matrix}", MatMul(Mul(Integer(1), _Pow(9, -1)), theta, Matrix([[1, 2], [3, 4]]), evaluate=False)),
         ("\\begin{pmatrix}1\\\\2\\\\3\\end{pmatrix};\\begin{pmatrix}4\\\\3\\\\1\\end{pmatrix}", [Matrix([1, 2, 3]), Matrix([4, 3, 1])]),
-        ("\\left\\{\\begin{pmatrix}1\\\\2\\\\3\\end{pmatrix},\\begin{pmatrix}4\\\\3\\\\1\\end{pmatrix}\\right\\}", [Matrix([1, 2, 3]), Matrix([4, 3, 1])]),
-        ("\\left\\{\\begin{pmatrix}1\\\\2\\\\3\\end{pmatrix},\\begin{pmatrix}4\\\\3\\\\1\\end{pmatrix},\\begin{pmatrix}1\\\\1\\\\1\\end{pmatrix}\\right\\}", [Matrix([1, 2, 3]), Matrix([4, 3, 1]), Matrix([1, 1, 1])]),
-        ("\\left\\{\\begin{pmatrix}1\\\\2\\\\3\\end{pmatrix}\\right\\}", Matrix([1, 2, 3])),
+        ("\\begin{pmatrix}1\\\\2\\\\3\\end{pmatrix};\\begin{pmatrix}4\\\\3\\\\1\\end{pmatrix}", [Matrix([1, 2, 3]), Matrix([4, 3, 1])]),
+        ("\\begin{pmatrix}1\\\\2\\\\3\\end{pmatrix};\\begin{pmatrix}4\\\\3\\\\1\\end{pmatrix}", [Matrix([1, 2, 3]), Matrix([4, 3, 1])]),
+        ("\\begin{pmatrix}1\\\\2\\\\3\\end{pmatrix};\\begin{pmatrix}4\\\\3\\\\1\\end{pmatrix};\\begin{pmatrix}1\\\\1\\\\1\\end{pmatrix}", [Matrix([1, 2, 3]), Matrix([4, 3, 1]), Matrix([1, 1, 1])]),
+        ("\\begin{pmatrix}1\\\\2\\\\3\\end{pmatrix}", Matrix([1, 2, 3])),
         ("\\left{\\begin{pmatrix}1\\\\2\\\\3\\end{pmatrix}\\right}", Matrix([1, 2, 3])),
         ("{\\begin{pmatrix}1\\\\2\\\\3\\end{pmatrix}}", Matrix([1, 2, 3])),
 

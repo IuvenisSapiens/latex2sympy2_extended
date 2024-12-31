@@ -1,12 +1,13 @@
-from .context import assert_equal
 import pytest
+from latex2sympy2_extended import latex2sympy
 from sympy import Sum, I, Symbol, Integer
+from tests.context import assert_equal
 
-a = Symbol('a', real=True)
-b = Symbol('b', real=True)
-i = Symbol('i', real=True)
-n = Symbol('n', real=True)
-x = Symbol('x', real=True)
+a = Symbol('a')
+b = Symbol('b')
+i = Symbol('i')
+n = Symbol('n')
+x = Symbol('x')
 
 
 def test_complex():

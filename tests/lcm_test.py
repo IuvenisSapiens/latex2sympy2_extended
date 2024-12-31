@@ -1,10 +1,10 @@
-from .context import assert_equal
+from tests.context import assert_equal
 import pytest
-from sympy import Symbol, Rational, UnevaluatedExpr, lcm, ilcm, sqrt, pi
+from sympy import Number, Symbol, Rational, UnevaluatedExpr, lcm, ilcm, sqrt, pi
 
-x = Symbol('x', real=True)
-y = Symbol('y', real=True)
-z = Symbol('z', real=True)
+x = Symbol('x')
+y = Symbol('y')
+z = Symbol('z')
 
 
 def test_lcm_usual():
@@ -114,8 +114,8 @@ def test_lcm_symbol():
     assert_equal("\\lcm(125, 50x)", lcm(125, 50 * x), symbolically=True)
     assert_equal("\\lcm(x + 76, \\sqrt{x} * 4)", lcm(x + 76, sqrt(x) * 4), symbolically=True)
     assert_equal("\\lcm(y, y)", lcm(y, y), symbolically=True)
-    assert_equal("y + \\lcm(0.4x, 8/3) / 2", y + lcm(Rational('0.4') * x, Rational('8/3')) / 2, symbolically=True)
-    assert_equal("6.673E-11 * (\\lcm(8.85418782E-12, 9x) + 4) / 8y", Rational('6.673E-11') * (lcm(Rational('8.85418782E-12'), 9 * x) + 4) / (8 * y), symbolically=True)
+    assert_equal("y + \\lcm(0.4x, 8/3) / 2", y + lcm(Number('0.4') * x, Rational('8/3')) / 2, symbolically=True)
+    assert_equal("6.673E-11 * (\\lcm(8.85418782E-12, 9x) + 4) / 8y", Rational('6.673E-11') * (lcm(Number('8.85418782E-12'), 9 * x) + 4) / (8 * y), symbolically=True)
 
     assert_equal("\\operatorname{lcm}(x, y)", lcm(x, y), symbolically=True)
     assert_equal("\\operatorname{lcm}(y, -x)", lcm(y, -x), symbolically=True)

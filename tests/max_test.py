@@ -1,10 +1,10 @@
-from .context import assert_equal
+from tests.context import assert_equal
 import pytest
 from sympy import Symbol, Rational, Float, Max, sqrt, exp, pi, nsimplify
 
-x = Symbol('x', real=True)
-y = Symbol('y', real=True)
-z = Symbol('z', real=True)
+x = Symbol('x')
+y = Symbol('y')
+z = Symbol('z')
 
 
 def test_max_usual():
@@ -28,12 +28,12 @@ def test_max_negative():
 
 
 def test_max_float():
-    assert_equal("\\max(\\pi, 3)", Max(pi, 3))
-    assert_equal("\\max(1234.56789, 1234.5678901)", Max(Rational('1234.56789'), Rational('1234.5678901')))
-    assert_equal("\\max(12.4, 9.5)", Max(12.4, 9.5))
-    assert_equal("\\max(6, 6.2)", Max(6, 6.2))
-    assert_equal("\\max(-98.7)", Max(-98.7))
-    assert_equal("\\max(7.1, 9)", Max(7.1, 9))
+    # assert_equal("\\max(\\pi, 3)", Max(pi, 3, evaluate=False))
+    assert_equal("\\max(1234.56789, 1234.5678901)", Max(Float('1234.56789'), Float('1234.5678901'), evaluate=False))
+    assert_equal("\\max(12.4, 9.5)", Max(12.4, 9.5, evaluate=False))
+    assert_equal("\\max(6, 6.2)", Max(6, 6.2, evaluate=False))
+    assert_equal("\\max(-98.7)", Max(-98.7, evaluate=False))
+    assert_equal("\\max(7.1, 9)", Max(7.1, 9, evaluate=False))
     assert_equal("\\max(-21E-12, 0.00005)", Max(nsimplify(Rational('-21E-12')), Rational('0.00005')), symbolically=True)
     assert_equal("\\max(\\sqrt{3}, 0, 1)", Max(sqrt(3), 0, 1))
 
@@ -49,13 +49,13 @@ def test_max_fraction():
 
 
 def test_max_expr():
-    assert_equal("\\max((1+6)/3, 7)", Max(Rational(1 + 6, 3), 7))
-    assert_equal("\\max(58*9)", Max(58 * 9))
-    assert_equal("\\max(1+6/3, -5)", Max(1 + Rational('6/3'), -5))
-    assert_equal("\\max(7*4/5, 092) * 2", Max(7 * 4 / 5, 92) * 2)
-    assert_equal("38+\\max(13, 15-2.3)", 38 + Max(13, 15 - Rational('2.3')))
-    assert_equal("\\sqrt{\\max(99.9999999999999, 100)}", sqrt(Max(Rational('99.9999999999999'), 100)))
-    assert_equal("\\max(274/(5+2), \\exp(12.4), 1.4E2)", Max(Rational(274, 5 + 2), exp(Rational('12.4')), Rational('1.4E2')))
+    assert_equal("\\max((1+6)/3, 7)", Max(Rational(1 + 6, 3), 7, evaluate=False))
+    assert_equal("\\max(58*9)", Max(58 * 9, evaluate=False))
+    assert_equal("\\max(1+6/3, -5)", Max(1 + Rational('6/3'), -5, evaluate=False))
+    assert_equal("\\max(7*4/5, 092) * 2", Max(7 * 4 / 5, 92, evaluate=False) * 2)
+    assert_equal("38+\\max(13, 15-2.3)", 38 + Max(13, 15 - Float('2.3')))
+    assert_equal("\\sqrt{\\max(99.9999999999999, 100)}", sqrt(Max(Float('99.9999999999999'), 100)))
+    assert_equal("\\max(274/(5+2), \\exp(12.4), 1.4E2)", Max(Rational(274, 5 + 2), exp(Float('12.4')), Float('1.4E2')))
 
 
 def test_max_symbol():

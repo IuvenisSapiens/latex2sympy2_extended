@@ -1,12 +1,12 @@
-from .context import assert_equal, _Pow, _Add, _Mul
+from latex2sympy2_extended import latex2sympy
 import pytest
 from sympy import Integral, sin, Symbol, Mul, Integer, Pow
-from latex2sympy.latex2sympy2 import latex2sympy as process_sympy
+from tests.context import assert_equal, _Add, _Mul, _Pow
 
-a = Symbol('a', real=True)
-b = Symbol('b', real=True)
-x = Symbol('x', real=True)
-theta = Symbol('theta', real=True)
+a = Symbol('a')
+b = Symbol('b')
+x = Symbol('x')
+theta = Symbol('theta')
 
 
 func_arg_examples = [

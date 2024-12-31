@@ -18,11 +18,10 @@ then source .env/Scripts/activate && echo "venv activated."
 else exit 1
 fi
 
-# Run unit tests
-echo "starting tests..."
-# if pytest tests
-# then echo "tests finished."
-# else exit 1
-# fi
+# Run ANTLR to generate Python files
+java -jar antlr-4.13.2-complete.jar src/latex2sympy2_extended/PS.g4 -o src/latex2sympy2_extended/gen
+
+# Run tests
+python -m pytest tests/
 
 exit 0

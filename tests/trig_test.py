@@ -1,4 +1,4 @@
-from .context import assert_equal
+from tests.context import assert_equal
 import pytest
 from sympy import asinh, Symbol
 

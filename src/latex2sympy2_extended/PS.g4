@@ -75,11 +75,6 @@ R_CEIL: '\\rceil';
 UL_CORNER: '\\ulcorner';
 UR_CORNER: '\\urcorner';
 
-L_LEFT: '\\left';
-R_RIGHT: '\\right';
-ML_LEFT: '\\mleft';
-MR_RIGHT: '\\mright';
-
 //functions
 FUNC_LIM:  '\\lim';
 LIM_APPROACH_SYM: '\\to' | '\\rightarrow' | '\\Rightarrow' | '\\longrightarrow' | '\\Longrightarrow';
@@ -395,7 +390,8 @@ NOTIN: '\\notin' | '∉';
 // Grammar rules
 
 
-math: relation | relation_list | set_relation;
+// We also have set elements so that 1,2,3,4 is parsed as a set
+math: relation | relation_list | set_relation | set_elements;
 
 transpose: '^T' | '^{T}' |  '^{\\top}' | '\'';
 
@@ -515,7 +511,11 @@ comp_nofunc:
 group:
     L_PAREN expr R_PAREN
     | L_GROUP expr R_GROUP
-    | L_BRACE expr R_BRACE;
+    | L_BRACE expr R_BRACE
+    | L_BRACKET expr R_BRACKET
+    | L_BRACE_VISUAL expr R_BRACE_VISUAL
+    | L_BRACE_CMD expr R_BRACE_CMD
+    | L_BRACK expr R_BRACK;
 
 formatting_group:
     PHANTOM_CMD L_BRACE expr R_BRACE
@@ -680,7 +680,7 @@ union_expr:
 
 intersection_expr:
     intersection_expr INTERSECTION intersection_expr |
-    set_atom;
+    set_group;
 
 set_group:
     L_PAREN minus_expr R_PAREN
@@ -692,9 +692,9 @@ set_atom:
     finite_set;
 
 interval:
-    (L_BRACKET | L_PAREN) 
+    (L_BRACKET | L_PAREN | L_BRACK | L_GROUP) 
     expr COMMA expr 
-    (R_BRACKET | R_PAREN);
+    (R_BRACKET | R_PAREN | R_BRACK | R_GROUP);
 
 // Allow all kinds of surrounding braces
 // We don't make disctionction between set and ordered tuples
@@ -702,8 +702,7 @@ finite_set:
     (L_BRACE set_elements R_BRACE) |
     (L_PAREN set_elements R_PAREN) |
     (L_BRACKET set_elements R_BRACKET) |
-    (L_BRACE_VISUAL set_elements R_BRACE_VISUAL) |
-    set_elements;
+    (L_BRACE_VISUAL set_elements R_BRACE_VISUAL);
 
 set_elements:
     set_element (COMMA set_element)*;

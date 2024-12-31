@@ -1,4 +1,4 @@
-from .context import assert_equal, _Mul, _Pow
+from tests.context import assert_equal, _Mul, _Pow
 import pytest
 from sympy import pi, Symbol, acos, cos
 

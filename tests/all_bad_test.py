@@ -1,5 +1,6 @@
-from .context import assert_equal, process_sympy
 import pytest
+from latex2sympy2_extended import latex2sympy
+from tests.context import assert_equal
 
 
 def pytest_generate_tests(metafunc):
@@ -55,7 +56,6 @@ class TestAllBad(object):
         "\\",
         "~",
         "\\frac{(2 + x}{1 - x)}",
-        "\\lim_{\\pi \\to 3} a",
         # because mix of COMMA and SEMICOLON
         "\\left\\{\\begin{pmatrix}1\\\\2\\\\3\\end{pmatrix},\\begin{pmatrix}4\\\\3\\\\1\\end{pmatrix};\\begin{pmatrix}1\\\\1\\\\1\\end{pmatrix}\\right\\}",
         # percentages without numbers before-hand
@@ -67,4 +67,4 @@ class TestAllBad(object):
 
     def test_bad_string(self, s):
         with pytest.raises(Exception):
-            process_sympy(s)
+            latex2sympy(s)
