@@ -1225,4 +1225,5 @@ def latex2sympy(latex_str: str, variable_values: dict | None = None, is_real=Non
 
 
 if __name__ == "__main__":
-    print(normalize_latex("1/2 \\approx 1", NormalizationConfig(basic_latex=True, units=False, malformed_operators=False, nits=False, boxed=False, equations=True)))
+    # print(normalize_latex("20 \\%", NormalizationConfig(basic_latex=True, units=True, malformed_operators=False, nits=True, boxed=False, equations=True)))
+    print(latex2sympy("20 \\%"))

@@ -217,7 +217,7 @@ UNEQUAL: '!=' | '!==' | '\\ne' | '\\neq' | '\\not\\equiv' | '≠' | '≁' | '≄
 BANG: '!';
 
 fragment PERCENT_SIGN: '\\%' | '%';
-PERCENT_NUMBER: NUMBER PERCENT_SIGN;
+PERCENT_NUMBER: NUMBER WS_CHAR? PERCENT_SIGN;
 
 //Excludes some letters for use as e.g. constants in SYMBOL
 fragment GREEK_LETTER:

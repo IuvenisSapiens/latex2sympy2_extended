@@ -24,6 +24,8 @@ class NormalizationConfig:
 r_left = re.compile(r"\\m?left(\\\{|\{|\\\||\||\[|\(|\\rbracl|\\lgroup|\\lbrace|\\lbrack|\\vert|\\lvert|\\lceil|\\lfloor|\\vert|\\lvert|\\langle|\\llcorner|\\ulcorner)")
 r_right = re.compile(r"\\m?right(\\\}|\}|\\\||\||\]|\)|\\rbrack|\\rgroup|\\rbrace|\\rbrack|\\vert|\\rvert|\\rceil|\\rfloor|\\vert|\\rvert|\\rangle|\\lrcorner|\\urcorner)")
 
+empty_text_regex = re.compile(r"\\text\s*\{\s*\}")
+
 # Units regex
 units = [
     "integer" "point",
@@ -175,14 +177,11 @@ units_regex = re.compile("|".join([f"(?=\\s)(?:{unit}(?:s|es)?)($|\\W)" for unit
 
 # Basic latex regex
 to_remove_regex = re.compile(
-    r"\\mathrm\{th\}|"
-    r"\{,\}|"
-    r"\\!|"
-    r"(?<!\\)\\\s|"  # backslash with whitespace (but not in matrix line breaks)
+    r"\\mathrm\{th\}|"  # "th"
+    r"\\!|"  # comma with inverse space
+    r"\\text\s*\{\s*\}|" # text with empty braces
     r"\\\$|\$|"  # dollar signs
-    r",\\!|"  # comma with inverse space
-    r"(?<=\s)(and)(?=\s)|"  # "and" with whitespace
-    r"(?<!\\)[\"\']|"
+    r"(?<!\\)[\"\']|"  # quotes
     # to display
     r"\\displaystyle"
 
@@ -198,7 +197,13 @@ to_replace_patterns = [
     ("decimal_space", r"\s\.", r" 0."),
     ("decimal_brace", r"\{\.", r"{0."),
     ("approx", r"\~\=", r"\approx"),
+    ("comma", r"\s*\{\s*,\s*\}", r","),
+    ("and", r"(?<=\s)(and)(?=\s)", r" "),
+    ("backslash_space", r"(?<!\\)\\\s", r" "),
+    # Empty text
     ("infinity", r"infinity", r"\infty"),
+    ("percent", r"\s*percent", r"\\%"),
+    ("percent_in_text", r"\\text{percent}", r"\\%"),
     ("inf", r"((?<!\\)inf(?!inity))", r"\infty"),
     ("sqrt", r" sqrt", r"\sqrt"),
 ]
@@ -387,6 +392,9 @@ def normalize_latex(text: str, config: NormalizationConfig) -> str:
     Returns:
         The normalized latex string
     """
+    if config.boxed:
+        text = extract_last_boxed_content(text)
+
     if config.basic_latex:
         # Basic latex command replacements
         text = text.replace(r'\mathrm{T}', 'T')
@@ -406,10 +414,6 @@ def normalize_latex(text: str, config: NormalizationConfig) -> str:
         # Fix doubled backslashes in commands
         if "matrix" not in text:
             text = command_slash_fix_regex.sub(r"\\", text)
-
-    if config.boxed:
-        text = extract_last_boxed_content(text)
-    
     
     if config.equations:
         # Split on =, take last part
@@ -435,6 +439,10 @@ def normalize_latex(text: str, config: NormalizationConfig) -> str:
             _text = units_regex.sub(r"\1\2", text)
             if _text != "" and _text != text:
                 text = _text
+        
+        # This can trigger empty \text{...}
+        # Make sure not to remove space this created
+        text = empty_text_regex.sub(" ", text)
     
     if config.nits:
         # Fix leading decimal
