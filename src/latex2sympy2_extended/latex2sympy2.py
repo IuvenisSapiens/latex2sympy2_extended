@@ -18,6 +18,8 @@ from sympy.matrices import GramSchmidt
 
 from sympy.parsing.sympy_parser import parse_expr
 
+# Thigns that would be further improved:
+# - Support for ordered tuples, hard to distinguish between set and tuple, but if there are repeated elements, it's a tuple
 
 
 r_left = re.compile(r"\\m?left(\\\{|\{|\\\||\||\[|\(|\\rbracl|\\lgroup|\\lbrace|\\lbrack|\\vert|\\lvert|\\lceil|\\lfloor|\\vert|\\lvert|\\langle|\\llcorner|\\ulcorner)")
@@ -228,6 +230,13 @@ class _Latex2Sympy:
 
         left = self.convert_expr(expr.expr()[0])
         right = self.convert_expr(expr.expr()[1])
+
+        # It doesn't make sense to have interval which represents an empty set, in this case we treat it as a finite set
+        try:
+            if (left_open and right_open and right <= left) or (not left_open and not right_open and right < left):
+                return sympy.FiniteSet(left, right)
+        except:
+            pass
 
         return sympy.Interval(left, right, left_open=left_open, right_open=right_open)
 
@@ -776,7 +785,7 @@ class _Latex2Sympy:
             return symbol
 
         elif atom.PERCENT_NUMBER():
-            text = atom.PERCENT_NUMBER().getText().replace("\\%", "").replace(",", "")
+            text = atom.PERCENT_NUMBER().getText().replace("\\%", "").replace("%", "").replace(",", "")
             number = self.parse_number(text)
             percent = sympy.Mul(number, Rational(1, 100))
             return percent
@@ -1213,3 +1222,7 @@ def latex2sympy(latex_str: str, variable_values: dict | None = None, is_real=Non
     if config is not None:
         latex_str = normalize_latex(latex_str, config)
     return converter.parse(latex_str)
+
+
+if __name__ == "__main__":
+    print(normalize_latex("1/2 \\approx 1", NormalizationConfig(basic_latex=True, units=False, malformed_operators=False, nits=False, boxed=False, equations=True)))

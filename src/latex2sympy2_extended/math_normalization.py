@@ -177,13 +177,14 @@ units_regex = re.compile("|".join([f"(?=\\s)(?:{unit}(?:s|es)?)($|\\W)" for unit
 to_remove_regex = re.compile(
     r"\\mathrm\{th\}|"
     r"\{,\}|"
+    r"\\!|"
     r"(?<!\\)\\\s|"  # backslash with whitespace (but not in matrix line breaks)
     r"\\\$|\$|"  # dollar signs
     r",\\!|"  # comma with inverse space
     r"(?<=\s)(and)(?=\s)|"  # "and" with whitespace
-    r"(?<!\\)[\"\']"
+    r"(?<!\\)[\"\']|"
     # to display
-    r"\displaystyle"
+    r"\\displaystyle"
 
 )
 
@@ -396,7 +397,7 @@ def normalize_latex(text: str, config: NormalizationConfig) -> str:
         text = permutation_regex.sub(r"\\frac{(\1)!}{((\1)-(\2))!}", text)
         
         # Remove useless latex commands
-        text = to_remove_regex.sub(" ", text)
+        text = to_remove_regex.sub("", text)
         text = replace_in_latex(text)
         
         # Remove new lines and simplify tabs
@@ -412,12 +413,16 @@ def normalize_latex(text: str, config: NormalizationConfig) -> str:
     
     if config.equations:
         # Split on =, take last part
-        text = equation_split_regex.split(text)[-1]
+        eq_parts = equation_split_regex.split(text)
+        text = eq_parts[-1]
         
-        # Split on approximate, take second last part
         approx_split = approx_split_regex.split(text)
-        if len(approx_split) > 1:
+        # This ensures that in A = 1/3 \\approx 0.3333, we take 1/3
+        # But in A \\approx 1/3, we take 1/3
+        if len(approx_split) > 1 and (len(eq_parts) > 1 or not approx_split[-2].strip().isalpha()):
             text = approx_split[-2]
+        else:
+            text = approx_split[-1]
     
     if config.units:
         # Remove the units and possibly the superscript
