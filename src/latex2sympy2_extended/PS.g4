@@ -199,6 +199,10 @@ fragment DIGIT: [0-9];
 MATRIX_XRIGHTARROW: '\\xrightarrow' | '\\xRightarrow';
 TRANSFORM_EXCHANGE: '<->' | '<=>' | '\\leftrightarrow' | '\\Leftrightarrow';
 
+// There is ofc huge issue with the fact that we can't distinguish between numbers and sets
+// in case of 3,333 can be either 3333 or {3,333}, we default to numbers in this case
+// Fixing this is a huge task and I am not going to do it
+// If you want to interpret it as set change * to *?
 NUMBER:
     DIGIT+ (COMMA DIGIT DIGIT DIGIT)*
     | DIGIT* (COMMA DIGIT DIGIT DIGIT)* PERIOD DIGIT+;
@@ -398,7 +402,7 @@ NOTIN: '\\notin' | '∉';
 
 
 // We also have set elements so that 1,2,3,4 is parsed as a set
-math: relation | relation_list | set_relation | set_elements;
+math: relation | relation_list | set_relation | set_elements_relation;
 
 transpose: '^T' | '^{T}' |  '^{\\\top}' | '\'';
 degree: '^\\circ' | '^\\degree' | '^\\circle' | '^°' | '^{\\circ}' | '^{\\degree}' | '^{\\circle}' | '^{°}';
@@ -706,6 +710,10 @@ finite_set:
     (L_PAREN_VISUAL set_elements R_PAREN_VISUAL) |
     (L_BRACKET set_elements R_BRACKET) |
     (L_BRACE_VISUAL set_elements R_BRACE_VISUAL);
+
+set_elements_relation:
+    atom (IN | ASSIGNMENT) set_elements |
+    set_elements;
 
 set_elements:
     set_element (COMMA set_element)*;

@@ -65,8 +65,8 @@ class _Latex2Sympy:
             return self.convert_set_relation(math.set_relation())
 
         # if set elements
-        elif math.set_elements():
-            return self.convert_set_elements(math.set_elements())
+        elif math.set_elements_relation():
+            return self.convert_set_elements_relation(math.set_elements_relation())
 
         # default case
         return self.convert_relation(math.relation())
@@ -200,6 +200,16 @@ class _Latex2Sympy:
                 return right.is_subset(left)
             raise Exception('Unrecognized set relation')
         return self.convert_set_minus(expr.minus_expr())
+
+    def convert_set_elements_relation(self, expr):
+        set_elements = self.convert_set_elements(expr.set_elements())
+        if expr.atom():
+            lh = self.convert_atom(expr.atom())
+            if not (hasattr(lh, 'is_Symbol') and lh.is_Symbol):
+                raise Exception('Set elements relation must in format symbol=set')
+            return set_elements
+        
+        return set_elements
 
     def convert_set_minus(self, expr):
         if expr.union_expr():
@@ -1240,4 +1250,4 @@ def latex2sympy(latex_str: str, variable_values: dict | None = None, is_real=Non
 
 if __name__ == "__main__":
     # print(normalize_latex("20 \\%", NormalizationConfig(basic_latex=True, units=True, malformed_operators=False, nits=True, boxed=False, equations=True)))
-    print(latex2sympy("x\\in{1,2}"))
+    print(latex2sympy("x=3,1,2"))
