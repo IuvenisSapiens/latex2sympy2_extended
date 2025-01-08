@@ -22,15 +22,13 @@ from sympy.parsing.sympy_parser import parse_expr
 # - Support for ordered tuples, hard to distinguish between set and tuple, but if there are repeated elements, it's a tuple
 
 
-r_left = re.compile(r"\\m?left(\\\{|\{|\\\||\||\[|\(|\\rbracl|\\lgroup|\\lbrace|\\lbrack|\\vert|\\lvert|\\lceil|\\lfloor|\\vert|\\lvert|\\langle|\\llcorner|\\ulcorner)")
-r_right = re.compile(r"\\m?right(\\\}|\}|\\\||\||\]|\)|\\rbrack|\\rgroup|\\rbrace|\\rbrack|\\vert|\\rvert|\\rceil|\\rfloor|\\vert|\\rvert|\\rangle|\\lrcorner|\\urcorner)")
-
 class _Latex2Sympy:
-    def __init__(self, variable_values: dict | None = None, is_real=None):
+    def __init__(self, variable_values: dict | None = None, is_real=None, convert_degrees: bool = False):
         # Instance variables
         self.is_real = is_real
         self.variances = {}  # For substituting
         self.var = {var:val if isinstance(val, Basic) or isinstance(val, MatrixBase) else parse_expr(val) for var, val in variable_values.items()} if variable_values else {}
+        self.convert_degrees = convert_degrees
         
     def create_parser(self, latex_str):
         """Create parser for latex string"""
@@ -118,7 +116,7 @@ class _Latex2Sympy:
             return sympy.Eq(lh, rh, evaluate=False)
         elif rel.ASSIGNMENT():
             # !Use Global variances
-            if lh.is_Symbol:
+            if hasattr(lh, 'is_Symbol') and lh.is_Symbol:
                 # set value
                 self.variances[lh] = rh
                 self.var[str(lh)] = rh
@@ -137,6 +135,14 @@ class _Latex2Sympy:
                 #     return result
                 # else:
                 return sympy.Eq(lh, rh, evaluate=False)
+        elif rel.APPROX():
+            if hasattr(lh, 'is_Symbol') and lh.is_Symbol:
+                self.variances[lh] = rh
+                self.var[str(lh)] = rh
+                return rh
+            else:
+                # We don't want approximation, so we jsut take the non-approximated value
+                return lh
         elif rel.IN():
             # !Use Global variances
             if hasattr(rh, 'is_Pow') and rh.is_Pow and hasattr(rh.exp, 'is_Mul'):
@@ -169,7 +175,15 @@ class _Latex2Sympy:
                     return right
                 else:
                     return right.contains(left)
-            if expr.NOTIN():
+            elif expr.ASSIGNMENT():
+                if hasattr(left, 'is_Symbol') and left.is_Symbol:
+                    # set value
+                    self.variances[left] = right
+                    self.var[str(left)] = right
+                    return right
+                else:
+                    return sympy.Eq(left, right, evaluate=False)
+            elif expr.NOTIN():
                 if hasattr(left, 'is_Symbol') and left.is_Symbol:
                     val = (sympy.S.Reals if self.is_real else sympy.S.Complexes) - right
                     self.variances[left] = val
@@ -613,7 +627,7 @@ class _Latex2Sympy:
                     except:
                         pass
                     pass
-            elif op.degree():
+            elif op.degree() and self.convert_degrees:
                 try:
                     exp = sympy.Mul(exp, sympy.pi/180)
                 except:
@@ -1217,8 +1231,8 @@ class _Latex2Sympy:
 # Common regex
 
 
-def latex2sympy(latex_str: str, variable_values: dict | None = None, is_real=None, config: NormalizationConfig | None = NormalizationConfig(basic_latex=True, units=False, malformed_operators=False, nits=False, boxed=False, equations=False)):
-    converter = _Latex2Sympy(variable_values, is_real)
+def latex2sympy(latex_str: str, variable_values: dict | None = None, is_real=None, convert_degrees: bool = False, config: NormalizationConfig | None = NormalizationConfig(basic_latex=True, units=False, malformed_operators=False, nits=False, boxed=False, equations=False)):
+    converter = _Latex2Sympy(variable_values, is_real, convert_degrees)
     if config is not None:
         latex_str = normalize_latex(latex_str, config)
     return converter.parse(latex_str)
@@ -1226,4 +1240,4 @@ def latex2sympy(latex_str: str, variable_values: dict | None = None, is_real=Non
 
 if __name__ == "__main__":
     # print(normalize_latex("20 \\%", NormalizationConfig(basic_latex=True, units=True, malformed_operators=False, nits=True, boxed=False, equations=True)))
-    print(latex2sympy("20 \\%"))
+    print(latex2sympy("x\\in{1,2}"))

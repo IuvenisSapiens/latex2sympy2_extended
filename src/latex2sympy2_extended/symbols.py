@@ -5,12 +5,12 @@ GREEK_LETTER_MAP = {
     # Alpha
     'α': 'alpha',
     '\\alpha': 'alpha',
-    '\\char"000391': 'alpha',
+    '\\char000391': 'alpha',
     
     # Beta
     'β': 'beta',
     '\\beta': 'beta',
-    '\\char"000392': 'beta',
+    '\\char000392': 'beta',
     
     # Gamma
     'γ': 'gamma',
@@ -27,19 +27,19 @@ GREEK_LETTER_MAP = {
     # Epsilon
     'ε': 'epsilon',
     '\\epsilon': 'epsilon',
-    '\\char"000190': 'epsilon',
+    '\\char000190': 'epsilon',
     'ϵ': 'varepsilon',
     '\\varepsilon': 'varepsilon',
     
     # Zeta
     'ζ': 'zeta',
     '\\zeta': 'zeta',
-    '\\char"000396': 'zeta',
+    '\\char000396': 'zeta',
     
     # Eta
     'η': 'eta',
     '\\eta': 'eta',
-    '\\char"000397': 'eta',
+    '\\char000397': 'eta',
     
     # Theta
     'θ': 'theta',
@@ -52,12 +52,12 @@ GREEK_LETTER_MAP = {
     # Iota
     'ι': 'iota',
     '\\iota': 'iota',
-    '\\char"000399': 'iota',
+    '\\char000399': 'iota',
     
     # Kappa
     'κ': 'kappa',
     '\\kappa': 'kappa',
-    '\\char"00039A': 'kappa',
+    '\\char00039A': 'kappa',
     
     # Lambda
     'λ': 'lambda',
@@ -68,12 +68,12 @@ GREEK_LETTER_MAP = {
     # Mu
     'μ': 'mu',
     '\\mu': 'mu',
-    '\\char"00039C': 'mu',
+    '\\char00039C': 'mu',
     
     # Nu
     'ν': 'nu',
     '\\nu': 'nu',
-    '\\char"00039D': 'nu',
+    '\\char00039D': 'nu',
     
     # Xi
     'ξ': 'xi',
@@ -84,7 +84,7 @@ GREEK_LETTER_MAP = {
     # Omicron
     'ο': 'omicron',
     '\\omicron': 'omicron',
-    '\\char"00039F': 'omicron',
+    '\\char00039F': 'omicron',
     
     # Pi
     'π': 'pi',
@@ -97,7 +97,7 @@ GREEK_LETTER_MAP = {
     # Rho
     'ρ': 'rho',
     '\\rho': 'rho',
-    '\\char"0003A1': 'rho',
+    '\\char0003A1': 'rho',
     'ϱ': 'varrho',
     '\\varrho': 'varrho',
     
@@ -112,7 +112,7 @@ GREEK_LETTER_MAP = {
     # Tau
     'τ': 'tau',
     '\\tau': 'tau',
-    '\\char"0003A4': 'tau',
+    '\\char0003A4': 'tau',
     
     # Upsilon
     'υ': 'upsilon',
@@ -131,7 +131,7 @@ GREEK_LETTER_MAP = {
     # Chi
     'χ': 'chi',
     '\\chi': 'chi',
-    '\\char"0003A7': 'chi',
+    '\\char0003A7': 'chi',
     
     # Psi
     'ψ': 'psi',
@@ -152,12 +152,12 @@ sympy_singleton_map = {
 
 def get_symbol(latex_str: str, is_real: bool | None = True):
     latex_str = latex_str.strip()
-    letter = GREEK_LETTER_MAP.get(latex_str)
+    letter = GREEK_LETTER_MAP.get(latex_str.replace('"', ''))
     if letter is None:
         letter = latex_str
 
-    if latex_str.startswith('\\'):
-        letter = latex_str[1:]
+    if letter.startswith('\\'):
+        letter = letter[1:]
     
     if letter in sympy_singleton_map:
         return sympy_singleton_map[letter]

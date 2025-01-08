@@ -206,8 +206,9 @@ NUMBER:
 E_NOTATION: NUMBER E_NOTATION_E (SUB | ADD)? DIGIT+;
 
 IN: '\\in';
-ASSIGNMENT: '=' | '≃' | '≅' | '≈' | '≡' | '≣' | '≟' | '≎' | '≏' | '≐' | '≑' | '≒' | '≓' | '≔' | '≕' | '≖' | '≗';
+ASSIGNMENT: '=' | '≡' | '≣' | '≟' | '≎' | '≏' | '≐' | '≑' | '≒' | '≓' | '≔' | '≕' | '≖' | '≗';
 EQUAL: '==' | '\\equiv';
+APPROX: '~=' | '≈' | '≊' | '≋' | '≃' | '≅' | '\\approx';
 LT: '<' | '≪' | '≺' | '⋖' | '\\lt';
 LTE: '\\leq' | '\\le' | '\\leqslant' | '≤' | '≦' | '≲' | '≾' | '<=';
 GT: '>' | '≫' | '≻' | '⋗' | '\\gt';
@@ -221,43 +222,43 @@ PERCENT_NUMBER: NUMBER WS_CHAR? PERCENT_SIGN;
 
 //Excludes some letters for use as e.g. constants in SYMBOL
 fragment GREEK_LETTER:
-    '\\alpha' | 'α' | '\\char"000391'
-    | '\\beta' | 'β' | '\\char"000392'
+    '\\alpha' | 'α' | '\\char"000391' | '\\char000391'
+    | '\\beta' | 'β' | '\\char"000392' | '\\char000392'
     | '\\gamma' | 'γ'
     | '\\Gamma' | 'Γ'
     | '\\delta' | 'δ'
     | '\\Delta' | 'Δ'
-    | '\\epsilon' | 'ε' | '\\char"000190'
+    | '\\epsilon' | 'ε' | '\\char"000190' | '\\char000190'
     | '\\varepsilon' | 'ϵ'
-    | '\\zeta' | 'ζ' | '\\char"000396'
-    | '\\eta' | 'η' | '\\char"000397'
+    | '\\zeta' | 'ζ' | '\\char"000396' | '\\char000396'
+    | '\\eta' | 'η' | '\\char"000397' | '\\char000397'
     | '\\theta' | 'θ'
     | '\\Theta' | 'Θ'
     | '\\vartheta' | 'ϑ'
-    | '\\iota' | 'ι' | '\\char"000399'
-    | '\\kappa' | 'κ' | '\\char"00039A'
+    | '\\iota' | 'ι' | '\\char"000399' | '\\char000399'
+    | '\\kappa' | 'κ' | '\\char"00039A' | '\\char00039A'
     | '\\lambda' | 'λ'
     | '\\Lambda' | 'Λ'
-    | '\\mu' | 'μ' | '\\char"00039C'
-    | '\\nu' | 'ν' | '\\char"00039D'
+    | '\\mu' | 'μ' | '\\char"00039C' | '\\char00039C'
+    | '\\nu' | 'ν' | '\\char"00039D' | '\\char00039D'
     | '\\xi' | 'ξ'
     | '\\Xi' | 'Ξ'
-    | '\\omicron' | 'ο' | '\\char"00039F'
+    | '\\omicron' | 'ο' | '\\char"00039F' | '\\char00039F'
     | '\\pi' | 'π'
     | '\\Pi' | 'Π'
     | '\\varpi' | 'ϖ'
-    | '\\rho' | 'ρ' | '\\char"0003A1'
+    | '\\rho' | 'ρ' | '\\char"0003A1' | '\\char0003A1'
     | '\\varrho' | 'ϱ'
     | '\\sigma' | 'σ'
     | '\\Sigma' | 'Σ'
     | '\\varsigma' | 'ς'
-    | '\\tau' | 'τ' | '\\char"0003A4'
+    | '\\tau' | 'τ' | '\\char"0003A4' | '\\char0003A4'
     | '\\upsilon' | 'υ'
     | '\\Upsilon' | 'Υ'
     | '\\phi' | 'φ'
     | '\\Phi' | 'Φ'
     | '\\varphi' | 'ϕ'
-    | '\\chi' | 'χ' | '\\char"0003A7'
+    | '\\chi' | 'χ' | '\\char"0003A7' | '\\char0003A7'
     | '\\psi' | 'ψ'
     | '\\Psi' | 'Ψ'
     | '\\omega' | 'ω'
@@ -426,7 +427,7 @@ matrix_row:
     expr (MATRIX_DEL_COL expr)*;
 
 relation:
-    relation (IN | ASSIGNMENT | EQUAL | LT | LTE | GT | GTE | UNEQUAL) relation
+    relation (IN | ASSIGNMENT | EQUAL | APPROX | LT | LTE | GT | GTE | UNEQUAL) relation
     | expr;
 
 relation_list:
@@ -668,7 +669,7 @@ supeq: UNDERSCORE L_BRACE equality R_BRACE;
 // TODO mayibe don't indluce the realtions or find a way to coexist with assigments
 set_relation:
     set_relation (SUBSET | SUPSET) set_relation |
-    expr (IN | NOTIN) set_relation |
+    expr (IN | NOTIN | ASSIGNMENT) set_relation |
     minus_expr;
 
 minus_expr:

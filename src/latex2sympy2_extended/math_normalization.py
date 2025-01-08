@@ -202,6 +202,8 @@ to_replace_patterns = [
     ("backslash_space", r"(?<!\\)\\\s", r" "),
     # Empty text
     ("infinity", r"infinity", r"\infty"),
+    # Dots
+    ("dot", r",?(\\ldots)", r" "),
     ("percent", r"\s*percent", r"\\%"),
     ("percent_in_text", r"\\text{percent}", r"\\%"),
     ("inf", r"((?<!\\)inf(?!inity))", r"\infty"),
@@ -416,17 +418,10 @@ def normalize_latex(text: str, config: NormalizationConfig) -> str:
             text = command_slash_fix_regex.sub(r"\\", text)
     
     if config.equations:
-        # Split on =, take last part
         eq_parts = equation_split_regex.split(text)
-        text = eq_parts[-1]
-        
-        approx_split = approx_split_regex.split(text)
-        # This ensures that in A = 1/3 \\approx 0.3333, we take 1/3
-        # But in A \\approx 1/3, we take 1/3
-        if len(approx_split) > 1 and (len(eq_parts) > 1 or not approx_split[-2].strip().isalpha()):
-            text = approx_split[-2]
-        else:
-            text = approx_split[-1]
+        # We only shorten if there are more than 2 parts, otherwise we keep equation as is
+        if len(eq_parts) > 2:
+            text = eq_parts[-1]
     
     if config.units:
         # Remove the units and possibly the superscript
