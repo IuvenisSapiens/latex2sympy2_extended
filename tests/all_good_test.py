@@ -229,8 +229,8 @@ class TestAllGood(object):
         ("\\ln\\left(\\left(x-\\theta\\right)\\right)", _log(x - theta, E)),
         # ("\\ln\\left(\\left\\{x-\\theta\\right\\}\\right)", _log(x - theta, E)),
         # ("\\ln\\left(\\left|x-\\theta\\right|\\right)", _log(_Abs(x - theta), E)),
-        ("\\frac{1}{2}xy(x+y)", Mul(Integer(1), _Pow(2, -1), x, y, (x + y), evaluate=False)),
-        ("\\frac{1}{2}\\theta(x+y)", Mul(Integer(1), _Pow(2, -1), theta, (x + y), evaluate=False)),
+        ("\\frac{1}{2}xy(x+y)", Mul(Rational(1, 2), x, y, (x + y), evaluate=False)),
+        ("\\frac{1}{2}\\theta(x+y)", Mul(Rational(1, 2), theta, (x + y), evaluate=False)),
         ("1-f(x)", 1 - Function('f')(x)),
 
         ("\\begin{matrix}1&2\\\\3&4\\end{matrix}", Matrix([[1, 2], [3, 4]])),

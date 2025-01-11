@@ -1,6 +1,6 @@
 import sympy
 import re
-from sympy import Basic, Matrix, MatrixBase, Pow, Rational, matrix_symbols, simplify, factor, expand, apart, expand_trig
+from sympy import Basic, Matrix, MatrixBase, Number, Pow, Rational, matrix_symbols, simplify, factor, expand, apart, expand_trig
 from antlr4 import InputStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
 from latex2sympy2_extended.symbols import get_symbol
@@ -516,6 +516,10 @@ class _Latex2Sympy:
             rh = self.convert_mp(mp_right)
             if (hasattr(lh, 'is_Matrix') and lh.is_Matrix) or (hasattr(rh, 'is_Matrix') and rh.is_Matrix):
                 return sympy.MatMul(lh, sympy.Pow(rh, -1, evaluate=False), evaluate=False)
+            
+            # If both are numbers, we convert to sympy.Rational
+            elif hasattr(lh, 'is_Integer') and lh.is_Integer and hasattr(rh, 'is_Integer') and rh.is_Integer:
+                return sympy.Rational(lh, rh)
             else:
                 return sympy.Mul(lh, sympy.Pow(rh, -1, evaluate=False), evaluate=False)
         elif mp.CMD_MOD():
@@ -552,6 +556,9 @@ class _Latex2Sympy:
                 return self.mat_mul_flat(-1, tmp_convert_nested_unary)
             else:
                 if (hasattr(tmp_convert_nested_unary, 'func') and tmp_convert_nested_unary.func.is_Number):
+                    return -tmp_convert_nested_unary
+                
+                elif hasattr(tmp_convert_nested_unary, 'is_Number') and tmp_convert_nested_unary.is_Number:
                     return -tmp_convert_nested_unary
                 else:
                     return self.mul_flat(-1, tmp_convert_nested_unary)
@@ -717,8 +724,7 @@ class _Latex2Sympy:
                 # Remove the command by striping first { and last }
                 text_start = atom_text.index('{')
                 accent_name = atom_text[1:text_start]
-                accent_text = atom_text[text_start + 1:-1]
-
+                accent_text = atom_text[text_start + 1:-1].replace(" ", "")
                 # exception: check if bar or overline which are treated both as bar
                 if accent_name in ["bar", "overline"]:
                     accent_name = "bar"
@@ -803,7 +809,7 @@ class _Latex2Sympy:
                 symbol = sympy.Symbol(atom_text, real=self.is_real)
 
             if is_percent:
-                return sympy.Mul(symbol, Rational(1, 100))
+                return convert_to_pct(symbol)
 
             # return the symbol
             return symbol
@@ -814,7 +820,6 @@ class _Latex2Sympy:
             percent = sympy.Mul(number, Rational(1, 100))
             return percent
     def parse_number(self, text):
-        # TODO: handle scientific notation
         text = text.replace(",", "")
         # If it's made only of digits, remove the starting 0
         if text.isdigit():
@@ -876,6 +881,9 @@ class _Latex2Sympy:
         expr_bot = self.convert_expr(frac.lower)
         if hasattr(expr_top, 'is_Matrix') and expr_top.is_Matrix or hasattr(expr_bot, 'is_Matrix') and expr_bot.is_Matrix:
             return sympy.MatMul(expr_top, sympy.Pow(expr_bot, -1, evaluate=False), evaluate=False)
+        
+        elif hasattr(expr_top, 'is_Integer') and expr_top.is_Integer and hasattr(expr_bot, 'is_Integer') and expr_bot.is_Integer:
+            return sympy.Rational(expr_top, expr_bot)
         else:
             return sympy.Mul(expr_top, sympy.Pow(expr_bot, -1, evaluate=False), evaluate=False)
 
@@ -1240,6 +1248,8 @@ class _Latex2Sympy:
 
 # Common regex
 
+def convert_to_pct(number: Number):
+    return sympy.Mul(number, sympy.Rational(1, 100), evaluate=False)
 
 def latex2sympy(latex_str: str, variable_values: dict | None = None, is_real=None, convert_degrees: bool = False, config: NormalizationConfig | None = NormalizationConfig(basic_latex=True, units=False, malformed_operators=False, nits=False, boxed=False, equations=False)):
     converter = _Latex2Sympy(variable_values, is_real, convert_degrees)
@@ -1250,4 +1260,5 @@ def latex2sympy(latex_str: str, variable_values: dict | None = None, is_real=Non
 
 if __name__ == "__main__":
     # print(normalize_latex("20 \\%", NormalizationConfig(basic_latex=True, units=True, malformed_operators=False, nits=True, boxed=False, equations=True)))
-    print(latex2sympy("x=3,1,2"))
+    print(latex2sympy(r"\boxed{\text{C,  E}}"))
+    print(latex2sympy(r"0.111"))
