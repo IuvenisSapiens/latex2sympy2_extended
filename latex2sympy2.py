@@ -1160,3 +1160,4 @@ if __name__ == '__main__':
     # print("math_type:", type(math.doit()))
     # print("shape:", (math.doit()).shape)
     print("cal:", latex2latex(tex))
+    print("\boxed{\text{C,E}}")
