@@ -204,8 +204,8 @@ TRANSFORM_EXCHANGE: '<->' | '<=>' | '\\leftrightarrow' | '\\Leftrightarrow';
 // Fixing this is a huge task and I am not going to do it
 // If you want to interpret it as set change * to *?
 NUMBER:
-    DIGIT+ (COMMA DIGIT DIGIT DIGIT)*
-    | DIGIT* (COMMA DIGIT DIGIT DIGIT)* PERIOD DIGIT+;
+    DIGIT+
+    | DIGIT* PERIOD DIGIT+;
 
 E_NOTATION: NUMBER E_NOTATION_E (SUB | ADD)? DIGIT+;
 
@@ -402,7 +402,7 @@ NOTIN: '\\notin' | '∉';
 
 
 // We also have set elements so that 1,2,3,4 is parsed as a set
-math: relation | relation_list | set_relation | set_elements_relation;
+math: relation | relation_list | number_with_commas | set_relation | set_elements_relation;
 
 transpose: '^T' | '^{T}' |  '^{\\\top}' | '\'';
 degree: '^\\circ' | '^\\degree' | '^\\circle' | '^°' | '^{\\circ}' | '^{\\degree}' | '^{\\circle}' | '^{°}';
@@ -726,3 +726,7 @@ set_element:
 
 plus_minus_expr:
     expr PLUS_MINUS expr;
+
+// Technicall this is not correct as it allows 1.333.111.33, but we deal with this in parser
+number_with_commas:
+    SUB? NUMBER (COMMA NUMBER)*;
