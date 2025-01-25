@@ -21,6 +21,8 @@
 
 **NOTICE:** It will do some irreversible calculations when converting determinants, transposed matrixes and elementary transformations...
 
+**NOTICE:** comma separated numbers are only supported in standalone form: `1,233`, not in expressions: `1,233x`.
+
 ## Installation
 
 ```

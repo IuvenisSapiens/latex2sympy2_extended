@@ -22,7 +22,7 @@ from sympy.parsing.sympy_parser import parse_expr
 # - Support for ordered tuples, hard to distinguish between set and tuple, but if there are repeated elements, it's a tuple
 
 
-comma_number_regex = re.compile(r'-?\d{1,3}(,\d{1,3})*(\.\d+)?')
+comma_number_regex = re.compile(r'^\s*-?\d{1,3}(,\d{3})*(\.\d+)?\s*$')
 
 class _Latex2Sympy:
     def __init__(self, variable_values: dict | None = None, is_real=None, convert_degrees: bool = False):
@@ -66,22 +66,14 @@ class _Latex2Sympy:
         if math.set_relation():
             return self.convert_set_relation(math.set_relation())
         
-        # The issue with 333,333 or 3,333 is that it makess sets and numbers with commas ambigous
-        # is that 333333 or {333,333}?
-        # What we therefore do is that default to numbers with commas
-        if math.number_with_commas():
-            if comma_number_regex.match(math.number_with_commas().getText()):
-                number = sympy.Number(math.number_with_commas().getText().replace(",", ""))
-                return number
-
-            # We must reset the token stream and enforce sets parsing
-            parser.getTokenStream().reset()
-            return self.convert_set_elements_relation(parser.set_elements_relation())
-
-
-
-
         if math.set_elements_relation():
+            # The issue with 333,333 or 3,333 is that it makess sets and numbers with commas ambigous
+            # is that 333333 or {333,333}?
+            # What we therefore do is that default to numbers with commas
+            # We make the regex match directly on latex_str, because otherwise don't know if there is space
+            # between the comma and the number, in this case it should be a set
+            if comma_number_regex.match(latex_str):
+                return sympy.Number(latex_str.replace(",", ""))
             return self.convert_set_elements_relation(math.set_elements_relation())
 
         # default case

@@ -241,11 +241,11 @@ class TestAllGood(object):
 
         # scientific notation
         ("2.5\\times 10^2", 250),
-        ("1,500\\times 10^{-1}", 150),
+        ("1500\\times 10^{-1}", 150),
 
         # e notation
         ("2.5E2", 250),
-        ("1,500E-1", 150),
+        ("1500E-1", 150),
 
         # multiplication without cmd
         ("2x2y", Mul(2, x, 2, y, evaluate=False)),

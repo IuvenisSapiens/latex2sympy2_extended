@@ -16,7 +16,7 @@ def test_mod_usual():
     assert_equal("6109\\mod 28", Mod(6109, 28))
     assert_equal("4000000000\\mod 28791", Mod(4000000000, 28791))
     assert_equal("128*10^300\\mod 876123", Mod(Rational('128E300'), 876123))
-    assert_equal("876,123\\mod 128E300)", Mod(876123, Rational('128E300')))
+    assert_equal("876123\\mod 128E300)", Mod(876123, Rational('128E300')))
 
 
 def test_mod_negative():
@@ -58,7 +58,7 @@ def test_mod_expr():
     assert_equal("141\\mod 9/3", Rational(Mod(141, 9) / 3))
     assert_equal("872 / (12\\mod 9 * 4) * 2", Rational(2 * 872, (Mod(12, 9) * 4)))
     assert_equal("1E-32 * (1E29\\mod 74)", Float('1E-32') * Mod(Float('1E29'), 74))
-    assert_equal("299,792,458\\mod 9.81", Mod(299792458, Float('9.81')))
+    assert_equal("299792458\\mod 9.81", Mod(299792458, Float('9.81')))
 
 
 def test_mod_symbol():

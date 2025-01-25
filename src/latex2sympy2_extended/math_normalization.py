@@ -178,13 +178,12 @@ units_regex = re.compile("|".join([f"(?=\\s)(?:{unit}(?:s|es)?)($|\\W)" for unit
 # Basic latex regex
 to_remove_regex = re.compile(
     r"\\mathrm\{th\}|"  # "th"
-    r"\\!|"  # comma with inverse space
+    r"\\!\s*|"  # comma with inverse space
     r"\\text\s*\{\s*\}|" # text with empty braces
     r"\\\$|\$|"  # dollar signs
     r"(?<!\\)[\"\']|"  # quotes
     # to display
     r"\\displaystyle"
-
 )
 
 # Text replacement patterns

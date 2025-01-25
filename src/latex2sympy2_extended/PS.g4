@@ -402,7 +402,7 @@ NOTIN: '\\notin' | '∉';
 
 
 // We also have set elements so that 1,2,3,4 is parsed as a set
-math: relation | relation_list | number_with_commas | set_relation | set_elements_relation;
+math: relation | relation_list | set_relation | set_elements_relation;
 
 transpose: '^T' | '^{T}' |  '^{\\\top}' | '\'';
 degree: '^\\circ' | '^\\degree' | '^\\circle' | '^°' | '^{\\circ}' | '^{\\degree}' | '^{\\circle}' | '^{°}';
@@ -726,7 +726,3 @@ set_element:
 
 plus_minus_expr:
     expr PLUS_MINUS expr;
-
-// Technicall this is not correct as it allows 1.333.111.33, but we deal with this in parser
-number_with_commas:
-    SUB? NUMBER (COMMA NUMBER)*;
