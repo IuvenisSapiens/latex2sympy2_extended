@@ -219,7 +219,7 @@ replacements = {name: replacement for name, _, replacement in to_replace_pattern
 command_slash_fix_regex = re.compile(r"\\\\(?=[a-zA-Z])")
 permutation_regex = re.compile(r"\(([a-zA-Z0-9+\-*/\\ ]+?)\)_{([a-zA-Z0-9+\-*/\\ ]+?)}")
 equation_split_regex = re.compile(r"(?<!\\|\<|\!|\>)=")
-unit_superscript_regex = re.compile(r"\\text{.*?}(\^\d|\{\^\d\})?$")
+unit_superscript_regex = re.compile(r"(\\(?:text|mbox){.*?})(\^\d|\{\^\d\})?$")
 approx_split_regex = re.compile(r"\\approx")
 
 # Malformed operators regex

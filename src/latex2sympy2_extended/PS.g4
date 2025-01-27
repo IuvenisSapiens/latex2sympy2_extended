@@ -402,7 +402,7 @@ NOTIN: '\\notin' | '∉';
 
 
 // We also have set elements so that 1,2,3,4 is parsed as a set
-math: relation | relation_list | set_relation | set_elements_relation;
+math: relation | relation_list | set_relation | set_elements_relation | just_letter_e;
 
 transpose: '^T' | '^{T}' |  '^{\\\top}' | '\'';
 degree: '^\\circ' | '^\\degree' | '^\\circle' | '^°' | '^{\\circ}' | '^{\\degree}' | '^{\\circle}' | '^{°}';
@@ -726,3 +726,7 @@ set_element:
 
 plus_minus_expr:
     expr PLUS_MINUS expr;
+
+// Otherwise we can't parse just E
+just_letter_e:
+    'E' | 'e';

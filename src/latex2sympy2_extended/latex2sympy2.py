@@ -1,6 +1,6 @@
 import sympy
 import re
-from sympy import Basic, Matrix, MatrixBase, Number, Pow, Rational, matrix_symbols, simplify, factor, expand, apart, expand_trig
+from sympy import Basic, Matrix, MatrixBase, Number, Pow, Rational, Symbol, matrix_symbols, simplify, factor, expand, apart, expand_trig
 from antlr4 import InputStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
 from latex2sympy2_extended.symbols import get_symbol
@@ -75,6 +75,9 @@ class _Latex2Sympy:
             if comma_number_regex.match(latex_str):
                 return sympy.Number(latex_str.replace(",", ""))
             return self.convert_set_elements_relation(math.set_elements_relation())
+
+        if math.just_letter_e():
+            return Symbol(math.just_letter_e().getText(), real=self.is_real)
 
         # default case
         return self.convert_relation(math.relation())
@@ -740,14 +743,18 @@ class _Latex2Sympy:
                     accent_name = "vec"
                 elif accent_name in ["tilde", "widetilde"]:
                     accent_name = "tilde"
-                elif "text" in accent_name:
-                    accent_name = "text"
+                elif "text" in accent_name or "mbox" in accent_name:
+                    # We ignore text accents so that $C$ == $\\text{C}$
+                    accent_name = ""
                     # Remove the parentheses
                     accent_text = accent_text.replace("(", "").replace(")", "")
                 elif "math" in accent_name:
                     accent_name = "math"
                 
-                atom_text = f"{accent_name}{{{accent_text}}}"
+                if accent_name:
+                    atom_text = f"{accent_name}{{{accent_text}}}"
+                else:
+                    atom_text = accent_text
 
             # find atom's subscript, if any
             subscript_text = ''
