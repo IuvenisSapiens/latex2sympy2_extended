@@ -1,7 +1,7 @@
 grammar PS;
 
 options {
-    language=Python3;
+   language=Python3;
 }
 
 // Lexer rules
@@ -402,7 +402,7 @@ NOTIN: '\\notin' | '∉';
 
 
 // We also have set elements so that 1,2,3,4 is parsed as a set
-math: relation | relation_list | set_relation | set_elements_relation | just_letter_e;
+math: set_relation | set_elements_relation EOF;
 
 transpose: '^T' | '^{T}' |  '^{\\\top}' | '\'';
 degree: '^\\circ' | '^\\degree' | '^\\circle' | '^°' | '^{\\circ}' | '^{\\degree}' | '^{\\circle}' | '^{°}';
@@ -433,12 +433,6 @@ matrix_row:
 relation:
     relation (IN | ASSIGNMENT | EQUAL | APPROX | LT | LTE | GT | GTE | UNEQUAL) relation
     | expr;
-
-relation_list:
-    relation_list_content;
-
-relation_list_content:
-    relation SEMICOLON relation (SEMICOLON relation)*;
 
 equality:
     expr (EQUAL | ASSIGNMENT) expr;
@@ -563,6 +557,7 @@ ceil_group:
 
 atom_expr_no_supexpr: (LETTER_NO_E | GREEK_CMD | OTHER_SYMBOL_CMD | ACCENT) subexpr?;
 atom_expr: (LETTER_NO_E | GREEK_CMD | OTHER_SYMBOL_CMD | ACCENT) (supexpr subexpr | subexpr supexpr | subexpr | supexpr)?;
+atom_expr_list: (L_PAREN atom_expr (COMMA atom_expr)* R_PAREN) | atom_expr;
 atom: atom_expr | SYMBOL | NUMBER | PERCENT_NUMBER | E_NOTATION | DIFFERENTIAL | VARIABLE;
 
 frac:
@@ -670,10 +665,9 @@ supexpr: CARET (atom | L_BRACE expr R_BRACE);
 subeq: UNDERSCORE L_BRACE equality R_BRACE;
 supeq: UNDERSCORE L_BRACE equality R_BRACE;
 
-// TODO mayibe don't indluce the realtions or find a way to coexist with assigments
 set_relation:
     set_relation (SUBSET | SUPSET) set_relation |
-    expr (IN | NOTIN | ASSIGNMENT) set_relation |
+    atom_expr_list (IN | NOTIN | ASSIGNMENT) set_relation |
     minus_expr;
 
 minus_expr:
@@ -693,40 +687,63 @@ set_group:
     | set_atom;
 
 set_atom:
-    literal_set |
     interval |
-    finite_set;
+    literal_set |
+    ordered_tuple |
+    finite_set |
+    set_elements;
 
 interval:
     (L_BRACKET | L_PAREN | L_PAREN_VISUAL | L_BRACK | L_GROUP) 
     expr COMMA expr 
     (R_BRACKET | R_PAREN | R_PAREN_VISUAL | R_BRACK | R_GROUP);
 
-// Allow all kinds of surrounding braces
-// We don't make disctionction between set and ordered tuples
-finite_set:
-    (L_BRACE set_elements R_BRACE) |
-    (L_PAREN set_elements R_PAREN) |
-    (L_PAREN_VISUAL set_elements R_PAREN_VISUAL) |
-    (L_BRACKET set_elements R_BRACKET) |
-    (L_BRACE_VISUAL set_elements R_BRACE_VISUAL);
+ordered_tuple:
+    (L_PAREN semicolon_elements R_PAREN) |
+    (L_PAREN_VISUAL semicolon_elements R_PAREN_VISUAL) |
+    (L_BRACKET semicolon_elements R_BRACKET);
 
+
+finite_set:
+    (L_BRACE semicolon_elements R_BRACE) |
+    (L_BRACE_VISUAL semicolon_elements R_BRACE_VISUAL);
+
+
+// We need two targets so that:
+// a=1,b=2 is parsed as {a=1, b=2}
+// while
+// a=1,2,3,4 is parsed as {a=1,2,3,4}
 set_elements_relation:
-    atom (IN | ASSIGNMENT) set_elements |
-    set_elements;
+    atom_expr_list (IN | ASSIGNMENT) semicolon_elements_no_relation;
 
 set_elements:
-    set_element (COMMA set_element)*;
+    semicolon_elements;
 
-literal_set:
-    SET_NATURALS | SET_INTEGERS | SET_RATIONALS | SET_REALS | SET_COMPLEX | SET_PRIMES | SET_EMPTY | L_BRACE R_BRACE;
+semicolon_elements:
+    semicolon_elements SEMICOLON semicolon_elements
+    | comma_elements;
 
-set_element:
-    plus_minus_expr | expr;
+semicolon_elements_no_relation:
+    comma_elements_no_relation SEMICOLON comma_elements_no_relation
+    | comma_elements_no_relation;
+
+comma_elements:
+    comma_elements COMMA comma_elements
+    | element;
+
+comma_elements_no_relation:
+    comma_elements_no_relation COMMA comma_elements_no_relation
+    | element_no_relation;
+
+element_no_relation:
+    plus_minus_expr | set_atom | expr;
+    
+element:
+    plus_minus_expr | set_atom | relation;
 
 plus_minus_expr:
     expr PLUS_MINUS expr;
 
-// Otherwise we can't parse just E
-just_letter_e:
-    'E' | 'e';
+literal_set:
+    SET_NATURALS | SET_INTEGERS | SET_RATIONALS | SET_REALS | SET_COMPLEX | SET_PRIMES | SET_EMPTY | L_BRACE R_BRACE;
+

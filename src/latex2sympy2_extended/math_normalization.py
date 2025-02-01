@@ -198,6 +198,7 @@ to_replace_patterns = [
     ("approx", r"\~\=", r"\approx"),
     ("comma", r"\s*\{\s*,\s*\}", r","),
     ("and", r"(?<=\s)(and)(?=\s)", r" "),
+    ("and_or_text", r"(\\text{\s*(?:and|or)\s*})", r"\cup"),
     ("backslash_space", r"(?<!\\)\\\s", r" "),
     # Empty text
     ("infinity", r"infinity", r"\infty"),
@@ -417,10 +418,13 @@ def normalize_latex(text: str, config: NormalizationConfig) -> str:
             text = command_slash_fix_regex.sub(r"\\", text)
     
     if config.equations:
-        eq_parts = equation_split_regex.split(text)
-        # We only shorten if there are more than 2 parts, otherwise we keep equation as is
-        if len(eq_parts) > 2:
-            text = eq_parts[-1]
+        
+        # This is to ensure that a=1,b=2 is not splitted
+        if not "," in text and not ";" in text:
+            eq_parts = equation_split_regex.split(text)
+            # We only shorten if there are more than 2 parts, otherwise we keep equation as is
+            if len(eq_parts) > 2:
+                text = eq_parts[-1]
     
     if config.units:
         # Remove the units and possibly the superscript

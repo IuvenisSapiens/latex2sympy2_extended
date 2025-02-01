@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import sympy
 import re
 from sympy import Basic, Matrix, MatrixBase, Number, Pow, Rational, Symbol, matrix_symbols, simplify, factor, expand, apart, expand_trig
@@ -22,16 +23,54 @@ from sympy.parsing.sympy_parser import parse_expr
 # - Support for ordered tuples, hard to distinguish between set and tuple, but if there are repeated elements, it's a tuple
 
 
-comma_number_regex = re.compile(r'^\s*-?\d{1,3}(,\d{3})*(\.\d+)?\s*$')
+@dataclass
+class ConversionConfig:
+    interpret_as_mixed_fractions: bool = True
+    interpret_simple_eq_as_assignment: bool = True
+    interpret_contains_as_eq: bool = True
+    """
+    Args:
+        interpret_as_mixed_fractions (bool): Whether to interpert 2 \frac{1}{2} as 2/2 or 2 + 1/2
+        interpret_simple_eq_as_assignment (bool): Whether to interpret simple equations as assignments k=1 -> 1
+    """
+
+
+def flatten_list(l):
+    return [item for sublist in l for item in sublist]
+
+def convert_number(number: str):
+    integer = number.translate(str.maketrans("", "", ", ")).lstrip("0")
+    if len(integer) == 0:
+        integer = "0"
+    return Number(integer)
+
+def is_expr_of_only_symbols(expr):
+    if hasattr(expr, 'is_Symbol') and expr.is_Symbol:
+        return True
+
+    # To allow A/S
+    if hasattr(expr, 'is_Pow') and expr.is_Pow and expr.args[1] == -1 and (
+        hasattr(expr.args[0], 'is_Symbol') and expr.args[0].is_Symbol
+        or hasattr(expr.args[0], 'args') and all(is_expr_of_only_symbols(arg) for arg in expr.args[0].args)
+    ):
+        return True
+    
+    if hasattr(expr, 'args') and len(expr.args) > 0:
+        return all(is_expr_of_only_symbols(arg) for arg in expr.args)
+    return False
+
+
+comma_number_regex = re.compile(r'^\s*-?\d{1,3}(,\d{3})+(\.\d+)?\s*$')
 
 class _Latex2Sympy:
-    def __init__(self, variable_values: dict | None = None, is_real=None, convert_degrees: bool = False):
+    def __init__(self, variable_values: dict | None = None, is_real=None, convert_degrees: bool = False, config: ConversionConfig = ConversionConfig()):
         # Instance variables
         self.is_real = is_real
         self.variances = {}  # For substituting
         self.var = {var:val if isinstance(val, Basic) or isinstance(val, MatrixBase) else parse_expr(val) for var, val in variable_values.items()} if variable_values else {}
         self.convert_degrees = convert_degrees
-        
+        self.config = config
+
     def create_parser(self, latex_str):
         """Create parser for latex string"""
         stream = InputStream(latex_str)
@@ -52,35 +91,22 @@ class _Latex2Sympy:
         # process the input
         math = parser.math()
 
-        # if a list
-        if math.relation_list():
-            return_data = []
-            # go over list items
-            relation_list = math.relation_list().relation_list_content()
-            for list_item in relation_list.relation():
-                expr = self.convert_relation(list_item)
-                return_data.append(expr)
-            return return_data
-        
         # if set relation
         if math.set_relation():
             return self.convert_set_relation(math.set_relation())
         
-        if math.set_elements_relation():
+        if math.set_elements():
             # The issue with 333,333 or 3,333 is that it makess sets and numbers with commas ambigous
             # is that 333333 or {333,333}?
             # What we therefore do is that default to numbers with commas
             # We make the regex match directly on latex_str, because otherwise don't know if there is space
             # between the comma and the number, in this case it should be a set
             if comma_number_regex.match(latex_str):
-                return sympy.Number(latex_str.replace(",", ""))
+                return convert_number(latex_str)
+            return self.convert_set_elements(math.set_elements())
+        
+        if math.set_elements_relation():
             return self.convert_set_elements_relation(math.set_elements_relation())
-
-        if math.just_letter_e():
-            return Symbol(math.just_letter_e().getText(), real=self.is_real)
-
-        # default case
-        return self.convert_relation(math.relation())
 
     class MathErrorListener(ErrorListener):
         def __init__(self, src):
@@ -127,27 +153,15 @@ class _Latex2Sympy:
             return sympy.Eq(lh, rh, evaluate=False)
         elif rel.ASSIGNMENT():
             # !Use Global variances
-            if hasattr(lh, 'is_Symbol') and lh.is_Symbol:
+            if self.config.interpret_simple_eq_as_assignment and is_expr_of_only_symbols(lh):
                 # set value
                 self.variances[lh] = rh
                 self.var[str(lh)] = rh
                 return rh
             else:
-                # find the symbols in lh - rh
-                # equation = lh - rh
-                # syms = equation.atoms(sympy.Symbol)
-                # if len(syms) > 0:
-                #     # Solve equation
-                #     result = []
-                #     for sym in syms:
-                #         values = sympy.solve(equation, sym)
-                #         for value in values:
-                #             result.append(sympy.Eq(sym, value, evaluate=False))
-                #     return result
-                # else:
                 return sympy.Eq(lh, rh, evaluate=False)
         elif rel.APPROX():
-            if hasattr(lh, 'is_Symbol') and lh.is_Symbol:
+            if is_expr_of_only_symbols(lh):
                 self.variances[lh] = rh
                 self.var[str(lh)] = rh
                 return rh
@@ -174,20 +188,23 @@ class _Latex2Sympy:
         elif rel.UNEQUAL():
             return sympy.Ne(lh, rh, evaluate=False)
 
+
     def convert_set_relation(self, expr):
-        if expr.expr():
-            left = self.convert_expr(expr.expr())
+        if expr.atom_expr_list():
+            left = self.convert_atom_expr_list(expr.atom_expr_list())
             right = self.convert_set_relation(expr.set_relation()[0])
             if expr.IN():
-                if hasattr(left, 'is_Symbol') and left.is_Symbol:
+                if self.config.interpret_simple_eq_as_assignment and is_expr_of_only_symbols(left):
                     # set value
                     self.variances[left] = right
                     self.var[str(left)] = right
                     return right
+                elif self.config.interpret_contains_as_eq:
+                    return sympy.Eq(left, right, evaluate=False)
                 else:
-                    return right.contains(left)
+                    return sympy.Contains(left, right, evaluate=False)
             elif expr.ASSIGNMENT():
-                if hasattr(left, 'is_Symbol') and left.is_Symbol:
+                if self.config.interpret_simple_eq_as_assignment and is_expr_of_only_symbols(left):
                     # set value
                     self.variances[left] = right
                     self.var[str(left)] = right
@@ -195,13 +212,17 @@ class _Latex2Sympy:
                 else:
                     return sympy.Eq(left, right, evaluate=False)
             elif expr.NOTIN():
-                if hasattr(left, 'is_Symbol') and left.is_Symbol:
+                if self.config.interpret_contains_as_eq:
                     val = (sympy.S.Reals if self.is_real else sympy.S.Complexes) - right
-                    self.variances[left] = val
-                    self.var[str(left)] = val
-                    return val
+                    if self.config.interpret_simple_eq_as_assignment and is_expr_of_only_symbols(left):
+                        self.variances[left] = val
+                        self.var[str(left)] = val
+                        return val
+                    else:
+                        return sympy.Eq(left, val, evaluate=False)
                 else:
                     return sympy.Not(right.contains(left))
+
         if expr.set_relation():
             left = self.convert_set_relation(expr.set_relation()[0])
             right = self.convert_set_relation(expr.set_relation()[1])
@@ -213,13 +234,54 @@ class _Latex2Sympy:
         return self.convert_set_minus(expr.minus_expr())
 
     def convert_set_elements_relation(self, expr):
-        set_elements = self.convert_set_elements(expr.set_elements())
-        if expr.atom():
-            lh = self.convert_atom(expr.atom())
-            if not (hasattr(lh, 'is_Symbol') and lh.is_Symbol):
-                raise Exception('Set elements relation must in format symbol=set')
-            return set_elements
+        semicolon_elements_no_relation = self.convert_semicolon_elements_no_relation(expr.semicolon_elements_no_relation())
+        if len(semicolon_elements_no_relation) == 1:
+            if len(semicolon_elements_no_relation[0]) == 1:
+                set_elements = semicolon_elements_no_relation[0][0]
+            else:
+                set_elements = sympy.FiniteSet(*semicolon_elements_no_relation[0])
+
+        elif all(len(elem) == 1 for elem in semicolon_elements_no_relation):
+            set_elements = sympy.FiniteSet(*[elem[0] for elem in semicolon_elements_no_relation])
+        else:
+            set_elements = sympy.FiniteSet(*[
+                sympy.Tuple(*l) for l in semicolon_elements_no_relation
+            ])
+
+        atom_expressions = self.convert_atom_expr_list(expr.atom_expr_list())
+        if expr.IN():
+            if self.config.interpret_simple_eq_as_assignment and is_expr_of_only_symbols(atom_expressions):
+                # set value
+                self.variances[atom_expressions] = set_elements
+                self.var[str(atom_expressions)] = set_elements
+                return set_elements
+            elif self.config.interpret_contains_as_eq:
+                return sympy.Eq(atom_expressions, set_elements, evaluate=False)
+            else:
+                return sympy.Contains(atom_expressions, set_elements, evaluate=False)
+        elif expr.ASSIGNMENT():
+            if self.config.interpret_simple_eq_as_assignment and is_expr_of_only_symbols(atom_expressions):
+                # set value
+                self.variances[atom_expressions] = set_elements
+                self.var[str(atom_expressions)] = set_elements
+                return set_elements
+            else:
+                return sympy.Eq(atom_expressions, set_elements, evaluate=False)
         return set_elements
+
+    def convert_set_elements(self, expr):
+        semicolon_elements = self.convert_semicolon_elements(expr.semicolon_elements())
+        if len(semicolon_elements) == 1:
+            if len(semicolon_elements[0]) == 1:
+                return semicolon_elements[0][0]
+            return sympy.FiniteSet(*semicolon_elements[0])
+        elif all(len(elem) == 1 for elem in semicolon_elements):
+            return sympy.FiniteSet(*[elem[0] for elem in semicolon_elements])
+
+        return sympy.FiniteSet(*[
+            sympy.Tuple(*l) for l in semicolon_elements
+        ])
+
 
     def convert_set_minus(self, expr):
         if expr.union_expr():
@@ -254,6 +316,8 @@ class _Latex2Sympy:
             return self.convert_literal_set(expr.literal_set())
         if expr.interval():
             return self.convert_interval(expr.interval())
+        if expr.ordered_tuple():
+            return self.convert_ordered_tuple(expr.ordered_tuple())
         if expr.finite_set():
             return self.convert_finite_set(expr.finite_set())
         raise Exception('Unrecognized set atom')
@@ -268,32 +332,81 @@ class _Latex2Sympy:
         # It doesn't make sense to have interval which represents an empty set, in this case we treat it as a finite set
         try:
             if (left_open and right_open and right <= left) or (not left_open and not right_open and right < left):
-                return sympy.FiniteSet(left, right)
+                return sympy.Tuple(left, right)
         except:
             pass
 
         return sympy.Interval(left, right, left_open=left_open, right_open=right_open)
 
+    def convert_ordered_tuple(self, expr):
+        elements = self.convert_semicolon_elements(expr.semicolon_elements())
+        # We don't support 1 element tuples
+        if len(elements) == 1 and len(elements[0]) == 1:
+            return elements[0][0]
+        return sympy.Tuple(*flatten_list(elements))
+
     def convert_finite_set(self, expr):
-        if expr.set_elements():
-            return self.convert_set_elements(expr.set_elements())
-        
-        return sympy.S.EmptySet
+        return sympy.FiniteSet(*flatten_list(self.convert_semicolon_elements(expr.semicolon_elements())))
     
-    def convert_set_elements(self, expr):
-        elements = []
-        for element in expr.set_element():
-            if element.plus_minus_expr():
-                pm = element.plus_minus_expr()
-                left = self.convert_expr(pm.expr()[0])
-                right = self.convert_expr(pm.expr()[1])
-                elements.extend([left + right, left - right])
-            else:
-                elements.append(self.convert_expr(element.expr()))
+    def convert_semicolon_elements(self, expr):
+        if expr.SEMICOLON():
+            l_expr = self.convert_semicolon_elements(expr.semicolon_elements(0))
+            r_expr = self.convert_semicolon_elements(expr.semicolon_elements(1))
+            if isinstance(r_expr[0], list):
+                r_expr = r_expr[0]
+            l_expr.append(r_expr)
+            return l_expr
+
+        return [self.convert_comma_elements(expr.comma_elements())]
+
+    def convert_semicolon_elements_no_relation(self, expr):
+        if expr.SEMICOLON():
+            l_expr = self.convert_semicolon_elements_no_relation(expr.semicolon_elements_no_relation(0))
+            r_expr = self.convert_semicolon_elements_no_relation(expr.semicolon_elements_no_relation(1))
+            if isinstance(r_expr[0], list):
+                r_expr = r_expr[0]
+            l_expr.append(r_expr)
+            return l_expr
+
+        return [self.convert_element(expr.element())]
+
+    def convert_comma_elements(self, expr):
+        if expr.COMMA():
+            l_expr = self.convert_comma_elements(expr.comma_elements(0))
+            r_expr = self.convert_comma_elements(expr.comma_elements(1))
+            return l_expr + r_expr
+
+        return self.convert_element(expr.element())
+
+    def convert_comma_elements_no_relation(self, expr):
+        if expr.COMMA():
+            l_expr = self.convert_comma_elements_no_relation(expr.comma_elements_no_relation(0))
+            r_expr = self.convert_comma_elements_no_relation(expr.comma_elements_no_relation(1))
+            return l_expr + r_expr
+
+        return self.convert_element(expr.element())
+
+    def convert_element(self, element):
+        if element.plus_minus_expr():
+            pm = element.plus_minus_expr()
+            left = self.convert_expr(pm.expr()[0])
+            right = self.convert_expr(pm.expr()[1])
+            return [left + right, left - right]
+        elif element.set_atom():
+            return [self.convert_set_atom(element.set_atom())]
+        
+        elif hasattr(element, 'relation') and element.relation():
+            return [self.convert_relation(element.relation())]
+
+        elif hasattr(element, 'expr') and element.expr():
+            return [self.convert_expr(element.expr())]
+        else:
+            raise Exception('Unrecognized comma element')
+    
 
         # Fallback because for some reason finites set wtih paren parses sometimes first
         # instead of interval
-        return sympy.FiniteSet(*elements)
+        return elements
 
     def convert_literal_set(self, expr):
         if expr.SET_NATURALS():
@@ -592,6 +705,12 @@ class _Latex2Sympy:
 
                 if (hasattr(res, 'is_Matrix') and res.is_Matrix) or (hasattr(rh, 'is_Matrix') and rh.is_Matrix):
                     return self.mat_mul_flat(res, rh)
+                # Support for mixed fractions, 2 \frac{1}{2}
+                elif hasattr(res, 'is_Integer') and res.is_Integer and hasattr(rh, 'is_Rational') and rh.is_Rational and rh.p > 0 and rh.q > 0:
+                    if res < 0:
+                        return sympy.Rational(res*rh.q - rh.p, rh.q)
+                    else:
+                        return sympy.Rational(res*rh.q + rh.p, rh.q)
                 else:
                     return self.mul_flat(res, rh)
         elif isinstance(res, list) and len(res) == 1:  # must be derivative
@@ -716,87 +835,91 @@ class _Latex2Sympy:
             return self.convert_func(comp.func())
 
 
+    def convert_atom_expr(self, atom_expr):
+        # find the atom's text
+        atom_text = ''
+        if atom_expr.LETTER_NO_E():
+            atom_text = atom_expr.LETTER_NO_E().getText()
+            if atom_text == "I":
+                return sympy.I
+        elif atom_expr.GREEK_CMD():
+            atom_text = atom_expr.GREEK_CMD().getText()
+        elif atom_expr.OTHER_SYMBOL_CMD():
+            atom_text = atom_expr.OTHER_SYMBOL_CMD().getText()
+        elif atom_expr.ACCENT():
+            atom_text = atom_expr.ACCENT().getText()
+            # Remove the command by striping first { and last }
+            text_start = atom_text.index('{')
+            accent_name = atom_text[1:text_start]
+            accent_text = atom_text[text_start + 1:-1].replace(" ", "")
+            # exception: check if bar or overline which are treated both as bar
+            if accent_name in ["bar", "overline"]:
+                accent_name = "bar"
+            elif accent_name in ["vec", "overrightarrow"]:
+                accent_name = "vec"
+            elif accent_name in ["tilde", "widetilde"]:
+                accent_name = "tilde"
+            elif "text" in accent_name or "mbox" in accent_name:
+                # We ignore text accents so that $C$ == $\\text{C}$
+                accent_name = ""
+                # Remove the parentheses
+                accent_text = accent_text.replace("(", "").replace(")", "")
+            elif "math" in accent_name:
+                accent_name = "math"
+            
+            if accent_name:
+                atom_text = f"{accent_name}{{{accent_text}}}"
+            else:
+                atom_text = accent_text
+
+        # find atom's subscript, if any
+        subscript_text = ''
+        if atom_expr.subexpr():
+            subexpr = atom_expr.subexpr()
+            subscript = None
+            if subexpr.expr():  # subscript is expr
+                subscript = subexpr.expr().getText().strip()
+            elif subexpr.atom():  # subscript is atom
+                subscript = subexpr.atom().getText().strip()
+            elif subexpr.args():  # subscript is args
+                subscript = subexpr.args().getText().strip()
+            subscript_inner_text = StrPrinter().doprint(subscript)
+            if len(subscript_inner_text) > 1:
+                subscript_text = '_{' + subscript_inner_text + '}'
+            else:
+                subscript_text = '_' + subscript_inner_text
+
+        # construct the symbol using the text and optional subscript
+        atom_symbol = get_symbol(atom_text.strip() + subscript_text, self.is_real)
+        # for matrix symbol
+        matrix_symbol = None
+        if atom_text + subscript_text in self.var:
+            try:
+                rh = self.var[atom_text + subscript_text]
+                shape = sympy.shape(rh)
+                matrix_symbol = sympy.MatrixSymbol(atom_text + subscript_text, shape[0], shape[1])
+                self.variances[matrix_symbol] = self.variances[atom_symbol]
+            except:
+                pass
+
+        # find the atom's superscript, and return as a Pow if found
+        if atom_expr.supexpr():
+            supexpr = atom_expr.supexpr()
+            func_pow = None
+            if supexpr.expr():
+                func_pow = self.convert_expr(supexpr.expr())
+            else:
+                func_pow = self.convert_atom(supexpr.atom())
+            return sympy.Pow(atom_symbol, func_pow, evaluate=False)
+
+        return atom_symbol if not matrix_symbol else matrix_symbol
+
+    def convert_atom_expr_list(self, atom_expr_list):
+        return sympy.Tuple(*[self.convert_atom_expr(atom_expr) for atom_expr in atom_expr_list.atom_expr()])
+
     def convert_atom(self, atom):
         if atom.atom_expr():
-            atom_expr = atom.atom_expr()
-
-            # find the atom's text
-            atom_text = ''
-            if atom_expr.LETTER_NO_E():
-                atom_text = atom_expr.LETTER_NO_E().getText()
-                if atom_text == "I":
-                    return sympy.I
-            elif atom_expr.GREEK_CMD():
-                atom_text = atom_expr.GREEK_CMD().getText()
-            elif atom_expr.OTHER_SYMBOL_CMD():
-                atom_text = atom_expr.OTHER_SYMBOL_CMD().getText()
-            elif atom_expr.ACCENT():
-                atom_text = atom_expr.ACCENT().getText()
-                # Remove the command by striping first { and last }
-                text_start = atom_text.index('{')
-                accent_name = atom_text[1:text_start]
-                accent_text = atom_text[text_start + 1:-1].replace(" ", "")
-                # exception: check if bar or overline which are treated both as bar
-                if accent_name in ["bar", "overline"]:
-                    accent_name = "bar"
-                elif accent_name in ["vec", "overrightarrow"]:
-                    accent_name = "vec"
-                elif accent_name in ["tilde", "widetilde"]:
-                    accent_name = "tilde"
-                elif "text" in accent_name or "mbox" in accent_name:
-                    # We ignore text accents so that $C$ == $\\text{C}$
-                    accent_name = ""
-                    # Remove the parentheses
-                    accent_text = accent_text.replace("(", "").replace(")", "")
-                elif "math" in accent_name:
-                    accent_name = "math"
-                
-                if accent_name:
-                    atom_text = f"{accent_name}{{{accent_text}}}"
-                else:
-                    atom_text = accent_text
-
-            # find atom's subscript, if any
-            subscript_text = ''
-            if atom_expr.subexpr():
-                subexpr = atom_expr.subexpr()
-                subscript = None
-                if subexpr.expr():  # subscript is expr
-                    subscript = subexpr.expr().getText().strip()
-                elif subexpr.atom():  # subscript is atom
-                    subscript = subexpr.atom().getText().strip()
-                elif subexpr.args():  # subscript is args
-                    subscript = subexpr.args().getText().strip()
-                subscript_inner_text = StrPrinter().doprint(subscript)
-                if len(subscript_inner_text) > 1:
-                    subscript_text = '_{' + subscript_inner_text + '}'
-                else:
-                    subscript_text = '_' + subscript_inner_text
-
-            # construct the symbol using the text and optional subscript
-            atom_symbol = get_symbol(atom_text.strip() + subscript_text, self.is_real)
-            # for matrix symbol
-            matrix_symbol = None
-            if atom_text + subscript_text in self.var:
-                try:
-                    rh = self.var[atom_text + subscript_text]
-                    shape = sympy.shape(rh)
-                    matrix_symbol = sympy.MatrixSymbol(atom_text + subscript_text, shape[0], shape[1])
-                    self.variances[matrix_symbol] = self.variances[atom_symbol]
-                except:
-                    pass
-
-            # find the atom's superscript, and return as a Pow if found
-            if atom_expr.supexpr():
-                supexpr = atom_expr.supexpr()
-                func_pow = None
-                if supexpr.expr():
-                    func_pow = self.convert_expr(supexpr.expr())
-                else:
-                    func_pow = self.convert_atom(supexpr.atom())
-                return sympy.Pow(atom_symbol, func_pow, evaluate=False)
-
-            return atom_symbol if not matrix_symbol else matrix_symbol
+            return self.convert_atom_expr(atom.atom_expr())
         elif atom.SYMBOL():
             s = atom.SYMBOL().getText().replace("\\$", "").replace("\\%", "")
             if s == "\\infty":

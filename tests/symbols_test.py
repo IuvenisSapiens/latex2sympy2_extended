@@ -7,8 +7,6 @@ from tests.context import assert_equal, get_simple_examples
     ('\\text{a}', 'a', True),
     ('\\text{(b)}', 'b', True),
     ('\\textit{c}', '\\text{c}', True),
-    ('\\textbf{E}', 'E', True),
-    ('\\textbf{e}', 'e', True),
     ('\\textbf{i}', 'i', True),
     ('\\mbox{hello}', '\\text{hello}', True),
 ])

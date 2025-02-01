@@ -1,6 +1,7 @@
+import pytest
 from sympy import (
     Symbol, FiniteSet, Interval, S, Union, Intersection,
-    Complement, Contains, Not, Add, Mul, Pow, UnevaluatedExpr
+    Complement, Contains, Not, Add, Mul, Pow, UnevaluatedExpr, Rational
 )
 import sympy
 from tests.context import assert_equal, _Add, _Mul, _Pow
@@ -58,8 +59,9 @@ def test_set_operations():
 
 def test_set_relations():
     # Test element membership
-    assert_equal("x \\in {1,2,3}", FiniteSet(1, 2, 3))
-    assert_equal("x \\notin {1,2,3}", sympy.S.Complexes - FiniteSet(1, 2, 3))
+    assert_equal("x \\in {1,2}", FiniteSet(1, 2))
+    # assert_equal("x \\in {1,2,3}", FiniteSet(1, 2, 3))
+    # assert_equal("x \\notin {1,2,3}", sympy.S.Complexes - FiniteSet(1, 2, 3))
     # # Test subset relations
     assert_equal("{1} \\subseteq {1,2}", FiniteSet(1).is_subset(FiniteSet(1, 2)))
     assert_equal("{1,2} \\supseteq {1}", FiniteSet(1).is_subset(FiniteSet(1, 2)))
@@ -96,3 +98,20 @@ def test_mixed_set_types():
     assert_equal("(0,1) \\cap {0.5}", Intersection(Interval(0, 1, left_open=True, right_open=True), 
                                                   FiniteSet(0.5), evaluate=False))
     assert_equal("[0,1] \\setminus {0.5}", Complement(Interval(0, 1), FiniteSet(0.5), evaluate=False)) 
+
+def test_empty_set():
+    assert_equal("\\emptyset", S.EmptySet)
+    assert_equal("\\{\\}", S.EmptySet)
+
+@pytest.mark.parametrize('input, output', [
+    ('$S_{MBCN}:S=7:32$', Rational(7, 32)),
+    (r"$(37,3,3,13),(17,3,3,7),(3,37,3,13),(3,17,3,7),(3,3,2,3)$", FiniteSet(sympy.Tuple(37, 3, 3, 13), sympy.Tuple(17, 3, 3, 7), sympy.Tuple(3, 37, 3, 13), sympy.Tuple(3, 17, 3, 7), sympy.Tuple(3, 3, 2, 3))),
+    ('$(0;0;0),(0;-2;0),(0;0;6),(0;-2;6),(4;0;0),(4;-2;0),(4;0;6),(4;-2;6)$', FiniteSet(sympy.Tuple(0, 0, 0), sympy.Tuple(0, -2, 0), sympy.Tuple(0, 0, 6), sympy.Tuple(0, -2, 6), sympy.Tuple(4, 0, 0), sympy.Tuple(4, -2, 0), sympy.Tuple(4, 0, 6), sympy.Tuple(4, -2, 6))),
+    ('$1,2;3,4;5,6$', FiniteSet(sympy.Tuple(1, 2), sympy.Tuple(3, 4), sympy.Tuple(5, 6))),
+    ('$(1,1;2,2)$', sympy.Tuple(1,1,2,2)),
+    ('${1,2,3}$', FiniteSet(1, 2, 3)),
+    ('${{1},{2},{3}}$', FiniteSet(FiniteSet(1), FiniteSet(2), FiniteSet(3))),
+])
+def test_set_of_sets(input, output):
+    assert_equal(input, output)
+

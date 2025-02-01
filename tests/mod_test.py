@@ -16,7 +16,7 @@ def test_mod_usual():
     assert_equal("6109\\mod 28", Mod(6109, 28))
     assert_equal("4000000000\\mod 28791", Mod(4000000000, 28791))
     assert_equal("128*10^300\\mod 876123", Mod(Rational('128E300'), 876123))
-    assert_equal("876123\\mod 128E300)", Mod(876123, Rational('128E300')))
+    assert_equal("876123\\mod 128E300", Mod(876123, Rational('128E300')))
 
 
 def test_mod_negative():
