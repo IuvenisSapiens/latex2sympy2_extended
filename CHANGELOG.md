@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1]
+
+### Changed
+- Changed `boxed` parameter in `NormalizationConfig` to be a string parameter with values "all", "none", or "only". "all" means that all boxed elements will be extracted, "none" means that no boxed elements will be extracted, and "only" means that only boxed elements will be extracted.
+
 ## [1.0.0]
 
 ### Added

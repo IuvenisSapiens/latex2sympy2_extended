@@ -21,8 +21,8 @@ def test_boxed_normalization():
         units=False,
         malformed_operators=False,
         nits=False,
-        boxed=True,
-        equations=False
+        equations=False,
+        boxed="all"
     )
 
     assert normalize_latex("\\boxed{\\left( 3, \\frac{\\pi}{2} \\right)}.", config) == "\\left( 3, \\frac{\\pi}{2} \\right)"

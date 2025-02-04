@@ -1,5 +1,6 @@
 import re
 from dataclasses import dataclass
+from typing import Literal
 
 @dataclass(frozen=True)
 class NormalizationConfig:
@@ -17,7 +18,7 @@ class NormalizationConfig:
     units: bool = False
     malformed_operators: bool = False
     nits: bool = False
-    boxed: bool = False
+    boxed: Literal["all", "last", "none"] = "all"
     equations: bool = False
 
 # Compile all regex patterns once at module level
@@ -251,72 +252,86 @@ def replace(match):
 def replace_in_latex(text: str) -> str:
     return to_replace_regex.sub(replace, text)
 
-def extract_last_boxed_content(text: str) -> str:
+def extract_boxed_content(text: str, mode: Literal["last", "all"] = "last") -> str:
     """
-    Find and extract all \\boxed{...} or \\fbox{...} elements from a string and join them with commas.
-
-    Example:
-    >>> extract_last_boxed_content("Some text \\boxed{\\frac{2}{3}} and \\boxed{x+1}")
-    "\\frac{2}{3},x+1"
-    >>> extract_last_boxed_content("\\boxed 123 \\fbox{456}")
-    "123,456"
-    >>> extract_last_boxed_content("No box here")
-    ""
+    Find and extract all \\boxed{...} or \\fbox{...} elements from a string, searching from right to left.
+    If mode is "last", return content up to the last valid separator.
+    If mode is "all", return all boxed contents joined by commas.
     """
-    results = []
-    remaining_text = text
+    VALID_SEPARATOR_PATTERN = re.compile(r'\s+and\s+|\s+or\s+|\s*,\s*')
     
-    while True:
-        # Look for \\boxed{...} or \\fbox{...}
-        boxed_idx = remaining_text.find("\\boxed")
-        fbox_idx = remaining_text.find("\\fbox")
+    def find_content_boundaries(text: str, start_pos: int, opening_brace_pos: int) -> tuple[int, int] | None:
+        # Start searching for closing brace from the opening brace position
+        i = opening_brace_pos
+        num_left_braces_open = 1  # We start after the opening brace
         
-        # Get the leftmost box command
-        if boxed_idx < 0 and fbox_idx < 0:
-            break
-        elif boxed_idx < 0:
-            left_idx = fbox_idx
-            env = "\\fbox"
-        elif fbox_idx < 0:
-            left_idx = boxed_idx
-            env = "\\boxed"
-        else:
-            if boxed_idx < fbox_idx:
-                left_idx = boxed_idx
-                env = "\\boxed"
-            else:
-                left_idx = fbox_idx
-                env = "\\fbox"
-                
-        left_idx += len(env)
-        
-        # If no opening brace, it's a \\boxed {content}
-        if len(remaining_text) > left_idx and remaining_text[left_idx] not in ["{", "["]:
-            content = remaining_text[left_idx:].split()[0].strip()
-            results.append(content)
-            remaining_text = remaining_text[left_idx + len(content):]
-            continue
-            
-        # Find matching closing brace
-        i = left_idx
-        num_left_braces_open = 0
-        while i < len(remaining_text):
-            if remaining_text[i] == "{":
+        while i + 1 < len(text):  # Check if next position is within bounds
+            i += 1
+            if text[i] == "{":
                 num_left_braces_open += 1
-            if remaining_text[i] == "}":
+            elif text[i] == "}":
                 num_left_braces_open -= 1
                 if num_left_braces_open == 0:
-                    # Extract content between braces
-                    content = remaining_text[left_idx + 1 : i]
-                    results.append(content)
-                    remaining_text = remaining_text[i + 1:]
-                    break
-            i += 1
-            
-        if i >= len(remaining_text):
+                    return opening_brace_pos, i
+        return None
+    
+    def has_valid_separator(text: str, content_end: int, next_boxed_start: int) -> bool:
+        between_text = text[content_end + 1:next_boxed_start]
+        return bool(VALID_SEPARATOR_PATTERN.search(between_text))
+    
+    results = []
+    current_pos = len(text)
+    last_boxed_start = None
+    
+    while True:
+        boxed_idx = text.rfind("\\boxed", 0, current_pos)
+        fbox_idx = text.rfind("\\fbox", 0, current_pos)
+        
+        if boxed_idx < 0 and fbox_idx < 0:
             break
             
-    return ",".join(results) if results else text
+        start_idx = max(boxed_idx, fbox_idx)
+        command_end = start_idx + (6 if boxed_idx > fbox_idx else 5)
+        
+        # Find opening brace
+        next_char_pos = command_end
+        while next_char_pos < len(text) and text[next_char_pos].isspace():
+            next_char_pos += 1
+            
+        if next_char_pos >= len(text):
+            break
+            
+        if text[next_char_pos] == "{":
+            boundaries = find_content_boundaries(text, start_idx, next_char_pos)
+            if not boundaries:
+                # This is our last box
+                if len(results) == 0:
+                    results.append(text[next_char_pos:])
+                break
+            content_start, content_end = boundaries
+            content = text[content_start + 1:content_end].strip()
+            
+            if mode == "last" and last_boxed_start is not None:
+                if not has_valid_separator(text, content_end, last_boxed_start):
+                    results = results[:1]
+                    break
+            
+            results.append(content)
+            last_boxed_start = start_idx
+        else:
+            # This is our last box
+            if len(results) == 0:
+                results.append(text[next_char_pos:])
+            # Otherwise we just ignore it
+            break
+            
+        
+        current_pos = start_idx
+    
+    if not results:
+        return text
+        
+    return ",".join(reversed(results))
 
 def _fix_fracs(text: str) -> str:
     """
@@ -422,8 +437,8 @@ def normalize_latex(text: str, config: NormalizationConfig) -> str:
     Returns:
         The normalized latex string
     """
-    if config.boxed:
-        text = extract_last_boxed_content(text)
+    if config.boxed == "all" or config.boxed == "last":
+        text = extract_boxed_content(text, mode=config.boxed)
 
     if config.basic_latex:
         # Basic latex command replacements
