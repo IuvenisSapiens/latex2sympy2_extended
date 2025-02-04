@@ -66,3 +66,4 @@ class TestAllBad(object):
     def test_bad_string(self, s):
         with pytest.raises(Exception):
             latex2sympy(s)
+            pass

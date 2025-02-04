@@ -13,12 +13,12 @@ class NormalizationConfig:
     - boxed: Extract content from boxed environments
     - equations: Handle equation splitting and approximations
     """
-    basic_latex: bool
-    units: bool
-    malformed_operators: bool
-    nits: bool
-    boxed: bool
-    equations: bool
+    basic_latex: bool = True
+    units: bool = False
+    malformed_operators: bool = False
+    nits: bool = False
+    boxed: bool = False
+    equations: bool = False
 
 # Compile all regex patterns once at module level
 r_left = re.compile(r"\\m?left(\\\{|\{|\\\||\||\[|\(|\\rbracl|\\lgroup|\\lbrace|\\lbrack|\\vert|\\lvert|\\lceil|\\lfloor|\\vert|\\lvert|\\langle|\\llcorner|\\ulcorner)")
@@ -180,6 +180,7 @@ to_remove_regex = re.compile(
     r"\\mathrm\{th\}|"  # "th"
     r"\\!\s*|"  # comma with inverse space
     r"\\text\s*\{\s*\}|" # text with empty braces
+    r"\\text\s*\{\s*\}|" # text with empty braces
     r"\\\$|\$|"  # dollar signs
     r"(?<!\\)[\"\']|"  # quotes
     # to display
@@ -197,8 +198,8 @@ to_replace_patterns = [
     ("decimal_brace", r"\{\.", r"{0."),
     ("approx", r"\~\=", r"\approx"),
     ("comma", r"\s*\{\s*,\s*\}", r","),
-    ("and", r"(?<=\s)(and)(?=\s)", r" "),
-    ("and_or_text", r"(\\text{\s*(?:and|or)\s*})", r"\cup"),
+    ("and_or", r"(?<!\w)(?:and|or)(?!\w)", r";"),
+    ("and_or_text", r"(\\text{\s*(?:and|or)\s*})", r";"),
     ("backslash_space", r"(?<!\\)\\\s", r" "),
     # Empty text
     ("infinity", r"infinity", r"\infty"),
@@ -252,47 +253,70 @@ def replace_in_latex(text: str) -> str:
 
 def extract_last_boxed_content(text: str) -> str:
     """
-    Find and extract the content of the last \\boxed{...} or \\fbox{...} element from a string.
+    Find and extract all \\boxed{...} or \\fbox{...} elements from a string and join them with commas.
 
     Example:
-    >>> extract_last_boxed_content("Some text \\boxed{\\frac{2}{3}}")
-    "\\frac{2}{3}"
-    >>> extract_last_boxed_content("\\boxed 123")
-    "123"
+    >>> extract_last_boxed_content("Some text \\boxed{\\frac{2}{3}} and \\boxed{x+1}")
+    "\\frac{2}{3},x+1"
+    >>> extract_last_boxed_content("\\boxed 123 \\fbox{456}")
+    "123,456"
     >>> extract_last_boxed_content("No box here")
     ""
     """
-
-    # Then look for \\boxed{...} or \\fbox{...}
-    env = "\\boxed"
-    left_idx = text.rfind(env)
-    if left_idx < 0:
-        env = "\\fbox"
-        left_idx = text.rfind(env)
-        if left_idx < 0:
-            return text
-    left_idx += len(env)
-
-    # If the next character is a brace remove it, otherwise it's a \\boxed {content}
-    if len(text) > left_idx and text[left_idx] not in ["{", "["]:
-        # If there is no opening brace, it's a \\boxed {content}
-        return text[left_idx:].lstrip()
-
-    # Find matching closing brace
-    i = left_idx
-    num_left_braces_open = 0
-    while i < len(text):
-        if text[i] == "{":
-            num_left_braces_open += 1
-        if text[i] == "}":
-            num_left_braces_open -= 1
-            if num_left_braces_open == 0:
-                # Extract content between braces (+1 to remove the opening brace)
-                return text[left_idx + 1 : i]
-        i += 1
-
-    # Otherwise, it's no a valid latex
-    return text
+    results = []
+    remaining_text = text
+    
+    while True:
+        # Look for \\boxed{...} or \\fbox{...}
+        boxed_idx = remaining_text.find("\\boxed")
+        fbox_idx = remaining_text.find("\\fbox")
+        
+        # Get the leftmost box command
+        if boxed_idx < 0 and fbox_idx < 0:
+            break
+        elif boxed_idx < 0:
+            left_idx = fbox_idx
+            env = "\\fbox"
+        elif fbox_idx < 0:
+            left_idx = boxed_idx
+            env = "\\boxed"
+        else:
+            if boxed_idx < fbox_idx:
+                left_idx = boxed_idx
+                env = "\\boxed"
+            else:
+                left_idx = fbox_idx
+                env = "\\fbox"
+                
+        left_idx += len(env)
+        
+        # If no opening brace, it's a \\boxed {content}
+        if len(remaining_text) > left_idx and remaining_text[left_idx] not in ["{", "["]:
+            content = remaining_text[left_idx:].split()[0].strip()
+            results.append(content)
+            remaining_text = remaining_text[left_idx + len(content):]
+            continue
+            
+        # Find matching closing brace
+        i = left_idx
+        num_left_braces_open = 0
+        while i < len(remaining_text):
+            if remaining_text[i] == "{":
+                num_left_braces_open += 1
+            if remaining_text[i] == "}":
+                num_left_braces_open -= 1
+                if num_left_braces_open == 0:
+                    # Extract content between braces
+                    content = remaining_text[left_idx + 1 : i]
+                    results.append(content)
+                    remaining_text = remaining_text[i + 1:]
+                    break
+            i += 1
+            
+        if i >= len(remaining_text):
+            break
+            
+    return ",".join(results) if results else text
 
 def _fix_fracs(text: str) -> str:
     """
@@ -360,8 +384,12 @@ def _fix_a_slash_b(text: str) -> str:
         assert text == "{}/{}".format(a, b)
         new_string = "\\frac{" + str(a) + "}{" + str(b) + "}"
         return new_string
+    except TimeoutError:
+        raise
+
     except Exception:
         return text
+
 
 def _fix_sqrt(text: str) -> str:
     """Source: https://github.com/hendrycks/math

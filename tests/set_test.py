@@ -1,6 +1,6 @@
 import pytest
 from sympy import (
-    Symbol, FiniteSet, Interval, S, Union, Intersection,
+    Eq, Symbol, FiniteSet, Interval, S, Union, Intersection,
     Complement, Contains, Not, Add, Mul, Pow, UnevaluatedExpr, Rational
 )
 import sympy
@@ -59,9 +59,9 @@ def test_set_operations():
 
 def test_set_relations():
     # Test element membership
-    assert_equal("x \\in {1,2}", FiniteSet(1, 2))
-    # assert_equal("x \\in {1,2,3}", FiniteSet(1, 2, 3))
-    # assert_equal("x \\notin {1,2,3}", sympy.S.Complexes - FiniteSet(1, 2, 3))
+    assert_equal("x \\in {1,2}", Eq(Symbol("x"), FiniteSet(1, 2), evaluate=False))
+    assert_equal("x \\in {1,2,3}", Eq(Symbol("x"), FiniteSet(1, 2, 3), evaluate=False))
+    assert_equal("x \\notin {1,2,3}", Not(Eq(Symbol("x"), FiniteSet(1, 2, 3), evaluate=False), evaluate=False))
     # # Test subset relations
     assert_equal("{1} \\subseteq {1,2}", FiniteSet(1).is_subset(FiniteSet(1, 2)))
     assert_equal("{1,2} \\supseteq {1}", FiniteSet(1).is_subset(FiniteSet(1, 2)))
@@ -104,14 +104,33 @@ def test_empty_set():
     assert_equal("\\{\\}", S.EmptySet)
 
 @pytest.mark.parametrize('input, output', [
-    ('$S_{MBCN}:S=7:32$', Rational(7, 32)),
+    ('$S_{MBCN}:S=7:32$', Eq(Mul(Symbol('S_{MBCN}'), Pow(Symbol('S'), -1)), Rational(7, 32), evaluate=False)),
     (r"$(37,3,3,13),(17,3,3,7),(3,37,3,13),(3,17,3,7),(3,3,2,3)$", FiniteSet(sympy.Tuple(37, 3, 3, 13), sympy.Tuple(17, 3, 3, 7), sympy.Tuple(3, 37, 3, 13), sympy.Tuple(3, 17, 3, 7), sympy.Tuple(3, 3, 2, 3))),
     ('$(0;0;0),(0;-2;0),(0;0;6),(0;-2;6),(4;0;0),(4;-2;0),(4;0;6),(4;-2;6)$', FiniteSet(sympy.Tuple(0, 0, 0), sympy.Tuple(0, -2, 0), sympy.Tuple(0, 0, 6), sympy.Tuple(0, -2, 6), sympy.Tuple(4, 0, 0), sympy.Tuple(4, -2, 0), sympy.Tuple(4, 0, 6), sympy.Tuple(4, -2, 6))),
     ('$1,2;3,4;5,6$', FiniteSet(sympy.Tuple(1, 2), sympy.Tuple(3, 4), sympy.Tuple(5, 6))),
     ('$(1,1;2,2)$', sympy.Tuple(1,1,2,2)),
     ('${1,2,3}$', FiniteSet(1, 2, 3)),
     ('${{1},{2},{3}}$', FiniteSet(FiniteSet(1), FiniteSet(2), FiniteSet(3))),
+    ('$k = 1,2,3$', Eq(Symbol('k'), FiniteSet(1, 2, 3), evaluate=False)),
+    ('$k \\in {1,2,3}$', Eq(Symbol('k'), FiniteSet(1, 2, 3), evaluate=False)),
+    ('$k \\in 1,2,3$', Eq(Symbol('k'), FiniteSet(1, 2, 3), evaluate=False)),
+    ('$k=1, b=2$', FiniteSet(Eq(Symbol('k'), 1), Eq(Symbol('b'), 2))),
+    ('$k=1; b=2$', FiniteSet(Eq(Symbol('k'), 1), Eq(Symbol('b'), 2))),
 ])
 def test_set_of_sets(input, output):
+    assert_equal(input, output)
+
+
+@pytest.mark.parametrize('input, output', [
+    ('a=1 and b=2', FiniteSet(Eq(a, 1), Eq(b, 2))),
+    ('a=1 or b=2', FiniteSet(Eq(a, 1), Eq(b, 2))),
+    ('a=1 \\text{ and } b=2', FiniteSet(Eq(a, 1), Eq(b, 2))),
+    ('a=1 \\text{ or } b=2', FiniteSet(Eq(a, 1), Eq(b, 2))),
+    (r"$(11,7)or(7,11)$", FiniteSet(sympy.Tuple(11, 7), sympy.Interval(7, 11, left_open=True, right_open=True))),
+    (r"$z \\in \left[-\frac{3}{2}, -1\right] \cup \left[1, \\frac{3}{2}\right]$", Eq(z, Union(Interval(-Rational(3, 2), -1), Interval(1, Rational(3, 2)), evaluate=False), evaluate=False)),
+    (r"\boxed{ p = 5, q = 2 \quad ; \quad p = 7, q = 2}", FiniteSet(sympy.Tuple(Eq(Symbol('p'), 5), Eq(Symbol('q'), 2)), sympy.Tuple(Eq(Symbol('p'), 7), Eq(Symbol('q'), 2)))),
+    (r"\boxed{1}", 1),
+])
+def test_and_or_text(input, output):
     assert_equal(input, output)
 

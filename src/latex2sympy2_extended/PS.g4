@@ -402,7 +402,7 @@ NOTIN: '\\notin' | '∉';
 
 
 // We also have set elements so that 1,2,3,4 is parsed as a set
-math: set_relation | set_elements_relation EOF;
+math: (set_elements_relation | set_elements | set_relation) EOF;
 
 transpose: '^T' | '^{T}' |  '^{\\\top}' | '\'';
 degree: '^\\circ' | '^\\degree' | '^\\circle' | '^°' | '^{\\circ}' | '^{\\degree}' | '^{\\circle}' | '^{°}';
@@ -558,7 +558,8 @@ ceil_group:
 atom_expr_no_supexpr: (LETTER_NO_E | GREEK_CMD | OTHER_SYMBOL_CMD | ACCENT) subexpr?;
 atom_expr: (LETTER_NO_E | GREEK_CMD | OTHER_SYMBOL_CMD | ACCENT) (supexpr subexpr | subexpr supexpr | subexpr | supexpr)?;
 atom_expr_list: (L_PAREN atom_expr (COMMA atom_expr)* R_PAREN) | atom_expr;
-atom: atom_expr | SYMBOL | NUMBER | PERCENT_NUMBER | E_NOTATION | DIFFERENTIAL | VARIABLE;
+number_subexpr: (NUMBER) subexpr?;
+atom: atom_expr | SYMBOL | number_subexpr | PERCENT_NUMBER | E_NOTATION | E_NOTATION_E | DIFFERENTIAL | VARIABLE;
 
 frac:
     CMD_FRAC L_BRACE
@@ -690,8 +691,8 @@ set_atom:
     interval |
     literal_set |
     ordered_tuple |
-    finite_set |
-    set_elements;
+    finite_set;
+
 
 interval:
     (L_BRACKET | L_PAREN | L_PAREN_VISUAL | L_BRACK | L_GROUP) 
@@ -704,9 +705,12 @@ ordered_tuple:
     (L_BRACKET semicolon_elements R_BRACKET);
 
 
+// We allow boxed a set for reason that llms like to use , in boxed
 finite_set:
     (L_BRACE semicolon_elements R_BRACE) |
-    (L_BRACE_VISUAL semicolon_elements R_BRACE_VISUAL);
+    (L_BRACE_VISUAL semicolon_elements R_BRACE_VISUAL) |
+    (BOXED_CMD L_BRACE semicolon_elements R_BRACE);
+    
 
 
 // We need two targets so that:
@@ -720,20 +724,16 @@ set_elements:
     semicolon_elements;
 
 semicolon_elements:
-    semicolon_elements SEMICOLON semicolon_elements
-    | comma_elements;
+    comma_elements (SEMICOLON comma_elements)*;
 
 semicolon_elements_no_relation:
-    comma_elements_no_relation SEMICOLON comma_elements_no_relation
-    | comma_elements_no_relation;
+    comma_elements_no_relation (SEMICOLON comma_elements_no_relation)*;
 
 comma_elements:
-    comma_elements COMMA comma_elements
-    | element;
+    element (COMMA element)*;
 
 comma_elements_no_relation:
-    comma_elements_no_relation COMMA comma_elements_no_relation
-    | element_no_relation;
+    element_no_relation (COMMA element_no_relation)*;
 
 element_no_relation:
     plus_minus_expr | set_atom | expr;
@@ -746,4 +746,3 @@ plus_minus_expr:
 
 literal_set:
     SET_NATURALS | SET_INTEGERS | SET_RATIONALS | SET_REALS | SET_COMPLEX | SET_PRIMES | SET_EMPTY | L_BRACE R_BRACE;
-

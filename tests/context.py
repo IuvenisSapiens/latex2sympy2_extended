@@ -39,12 +39,12 @@ def get_simple_examples(func):
     x = Symbol('x', real=None)
     y = Symbol('y', real=None)
     return [
-        # ("1.1", func(1.1), False),
-        # ("6.9", func(6.9), False),
-        # ("3.5", func(3.5), False),
-        # ("8", func(8), False),
-        # ("0", func(0), False),
+        ("1.1", func(1.1), False),
+        ("6.9", func(6.9), False),
+        ("3.5", func(3.5), False),
+        ("8", func(8), False),
+        ("0", func(0), False),
         ("x", func(x), True),
-        # ("x + y", func(x + y), True),
-        # ("2y-y-y", func(2 * y - y - y), True)
+        ("x + y", func(x + y), True),
+        ("2y-y-y", func(2 * y - y - y), True)
     ]

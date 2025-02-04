@@ -13,7 +13,9 @@ from latex2sympy2_extended.gen.PSListener import PSListener
 import sympy.functions.elementary.trigonometric as sympy_trig
 import sympy.functions.elementary.hyperbolic as sympy_hyperbolic
 import sympy.functions.elementary.miscellaneous as sympy_misc
+from sympy import And
 import sympy.functions.elementary.integers as sympy_integers
+from sympy.core.relational import Relational
 from sympy.printing.str import StrPrinter
 from sympy.matrices import GramSchmidt
 
@@ -23,15 +25,16 @@ from sympy.parsing.sympy_parser import parse_expr
 # - Support for ordered tuples, hard to distinguish between set and tuple, but if there are repeated elements, it's a tuple
 
 
-@dataclass
+@dataclass(frozen=True)
 class ConversionConfig:
     interpret_as_mixed_fractions: bool = True
-    interpret_simple_eq_as_assignment: bool = True
+    interpret_simple_eq_as_assignment: bool = False
     interpret_contains_as_eq: bool = True
     """
     Args:
         interpret_as_mixed_fractions (bool): Whether to interpert 2 \frac{1}{2} as 2/2 or 2 + 1/2
         interpret_simple_eq_as_assignment (bool): Whether to interpret simple equations as assignments k=1 -> 1
+        interpret_contains_as_eq (bool): Whether to interpret contains as equality x \\in {1,2,3} -> x = {1,2,3}
     """
 
 
@@ -108,6 +111,8 @@ class _Latex2Sympy:
         if math.set_elements_relation():
             return self.convert_set_elements_relation(math.set_elements_relation())
 
+        raise Exception('Nothing matched')
+
     class MathErrorListener(ErrorListener):
         def __init__(self, src):
             super(ErrorListener, self).__init__()
@@ -140,16 +145,36 @@ class _Latex2Sympy:
         
         lh = self.convert_relation(rel.relation(0))
         rh = self.convert_relation(rel.relation(1))
-        
+
         if rel.LT():
+            if isinstance(lh, And):
+                return And(*lh.args, sympy.StrictLessThan(lh.args[-1].rhs, rh, evaluate=False))
+            elif isinstance(lh, Relational):
+                return And(lh, sympy.StrictLessThan(lh.rhs, rh, evaluate=False))
             return sympy.StrictLessThan(lh, rh, evaluate=False)
         elif rel.LTE():
+            if isinstance(lh, And):
+                return And(*lh.args, sympy.LessThan(lh.args[-1].rhs, rh, evaluate=False))
+            elif isinstance(lh, Relational):
+                return And(lh, sympy.LessThan(lh.rhs, rh, evaluate=False))
             return sympy.LessThan(lh, rh, evaluate=False)
         elif rel.GT():
+            if isinstance(lh, And):
+                return And(*lh.args, sympy.StrictGreaterThan(lh.args[-1].rhs, rh, evaluate=False))
+            elif isinstance(lh, Relational):
+                return And(lh, sympy.StrictGreaterThan(lh.rhs, rh, evaluate=False))
             return sympy.StrictGreaterThan(lh, rh, evaluate=False)
         elif rel.GTE():
+            if isinstance(lh, And):
+                return And(*lh.args, sympy.GreaterThan(lh.args[-1].rhs, rh, evaluate=False))
+            elif isinstance(lh, Relational):
+                return And(lh, sympy.GreaterThan(lh.rhs, rh, evaluate=False))
             return sympy.GreaterThan(lh, rh, evaluate=False)
         elif rel.EQUAL():
+            if isinstance(lh, And):
+                return And(*lh.args, sympy.Eq(lh.args[-1].rhs, rh, evaluate=False))
+            elif isinstance(lh, Relational):
+                return And(lh, sympy.Eq(lh.rhs, rh, evaluate=False))
             return sympy.Eq(lh, rh, evaluate=False)
         elif rel.ASSIGNMENT():
             # !Use Global variances
@@ -159,6 +184,10 @@ class _Latex2Sympy:
                 self.var[str(lh)] = rh
                 return rh
             else:
+                if isinstance(lh, And):
+                    return And(*lh.args, sympy.Eq(lh.args[-1].rhs, rh, evaluate=False))
+                elif isinstance(lh, Relational):
+                    return And(lh, sympy.Eq(lh.rhs, rh, evaluate=False))
                 return sympy.Eq(lh, rh, evaluate=False)
         elif rel.APPROX():
             if is_expr_of_only_symbols(lh):
@@ -180,12 +209,18 @@ class _Latex2Sympy:
                 rh = sympy.MatrixSymbol(lh, n, m)
                 self.variances[lh] = rh
                 self.var[str(lh)] = rh
+            elif self.config.interpret_simple_eq_as_assignment and is_expr_of_only_symbols(lh):
+                self.variances[lh] = rh
+                self.var[str(lh)] = rh
+                return rh
             else:
-                # Otherwise we parse it as set in
-                parser = self.create_parser(str(lh))
-                return self.convert_set_relation(parser.set_relation())
+                raise Exception('Unrecognized relation')
             return lh
         elif rel.UNEQUAL():
+            if isinstance(lh, And):
+                return And(*lh.args, sympy.Ne(lh.args[-1].rhs, rh, evaluate=False))
+            elif isinstance(lh, Relational):
+                return And(lh, sympy.Ne(lh.rhs, rh, evaluate=False))
             return sympy.Ne(lh, rh, evaluate=False)
 
 
@@ -219,7 +254,7 @@ class _Latex2Sympy:
                         self.var[str(left)] = val
                         return val
                     else:
-                        return sympy.Eq(left, val, evaluate=False)
+                        return sympy.Not(sympy.Eq(left, right, evaluate=False), evaluate=False)
                 else:
                     return sympy.Not(right.contains(left))
 
@@ -233,20 +268,22 @@ class _Latex2Sympy:
             raise Exception('Unrecognized set relation')
         return self.convert_set_minus(expr.minus_expr())
 
+    def convert_elements_to_set_or_tuple(self, elements):
+        """Helper function to convert elements to either a FiniteSet or Tuple based on content"""
+        if len(elements) == 1:
+            if len(elements[0]) == 1:
+                return elements[0][0]
+            return sympy.FiniteSet(*elements[0])
+        elif all(len(elem) == 1 for elem in elements):
+            return sympy.FiniteSet(*[elem[0] for elem in elements])
+        else:
+            return sympy.FiniteSet(*[
+                sympy.Tuple(*l) for l in elements
+            ])
+
     def convert_set_elements_relation(self, expr):
         semicolon_elements_no_relation = self.convert_semicolon_elements_no_relation(expr.semicolon_elements_no_relation())
-        if len(semicolon_elements_no_relation) == 1:
-            if len(semicolon_elements_no_relation[0]) == 1:
-                set_elements = semicolon_elements_no_relation[0][0]
-            else:
-                set_elements = sympy.FiniteSet(*semicolon_elements_no_relation[0])
-
-        elif all(len(elem) == 1 for elem in semicolon_elements_no_relation):
-            set_elements = sympy.FiniteSet(*[elem[0] for elem in semicolon_elements_no_relation])
-        else:
-            set_elements = sympy.FiniteSet(*[
-                sympy.Tuple(*l) for l in semicolon_elements_no_relation
-            ])
+        set_elements = self.convert_elements_to_set_or_tuple(semicolon_elements_no_relation)
 
         atom_expressions = self.convert_atom_expr_list(expr.atom_expr_list())
         if expr.IN():
@@ -271,16 +308,7 @@ class _Latex2Sympy:
 
     def convert_set_elements(self, expr):
         semicolon_elements = self.convert_semicolon_elements(expr.semicolon_elements())
-        if len(semicolon_elements) == 1:
-            if len(semicolon_elements[0]) == 1:
-                return semicolon_elements[0][0]
-            return sympy.FiniteSet(*semicolon_elements[0])
-        elif all(len(elem) == 1 for elem in semicolon_elements):
-            return sympy.FiniteSet(*[elem[0] for elem in semicolon_elements])
-
-        return sympy.FiniteSet(*[
-            sympy.Tuple(*l) for l in semicolon_elements
-        ])
+        return self.convert_elements_to_set_or_tuple(semicolon_elements)
 
 
     def convert_set_minus(self, expr):
@@ -294,16 +322,34 @@ class _Latex2Sympy:
     def convert_set_union(self, expr):
         if expr.intersection_expr():
             return self.convert_set_intersection(expr.intersection_expr())
+
         left = self.convert_set_union(expr.union_expr()[0])
         right = self.convert_set_union(expr.union_expr()[1])
+        
+        # It's hard to know what the user meant, but clearly we cant do intersection with tuple
+        if isinstance(left, sympy.Tuple):
+            left = sympy.FiniteSet(*left)
+
+        if isinstance(right, sympy.Tuple):
+            right = sympy.FiniteSet(*right)
+
         return sympy.Union(left, right, evaluate=False)
 
     def convert_set_intersection(self, expr):
-        if expr.intersection_expr():
-            left = self.convert_set_intersection(expr.intersection_expr()[0])
-            right = self.convert_set_intersection(expr.intersection_expr()[1])
-            return sympy.Intersection(left, right, evaluate=False)
-        return self.convert_set_group(expr.set_group())
+        if expr.set_group():
+            return self.convert_set_group(expr.set_group())
+
+        left = self.convert_set_intersection(expr.intersection_expr()[0])
+        right = self.convert_set_intersection(expr.intersection_expr()[1])
+
+        if isinstance(left, sympy.Tuple):
+            left = sympy.FiniteSet(*left)
+
+        if isinstance(right, sympy.Tuple):
+            right = sympy.FiniteSet(*right)
+
+        return sympy.Intersection(left, right, evaluate=False)
+
 
     def convert_set_group(self, expr):
         if expr.set_atom():
@@ -333,6 +379,8 @@ class _Latex2Sympy:
         try:
             if (left_open and right_open and right <= left) or (not left_open and not right_open and right < left):
                 return sympy.Tuple(left, right)
+        except TimeoutError:
+            raise
         except:
             pass
 
@@ -346,45 +394,29 @@ class _Latex2Sympy:
         return sympy.Tuple(*flatten_list(elements))
 
     def convert_finite_set(self, expr):
-        return sympy.FiniteSet(*flatten_list(self.convert_semicolon_elements(expr.semicolon_elements())))
-    
-    def convert_semicolon_elements(self, expr):
-        if expr.SEMICOLON():
-            l_expr = self.convert_semicolon_elements(expr.semicolon_elements(0))
-            r_expr = self.convert_semicolon_elements(expr.semicolon_elements(1))
-            if isinstance(r_expr[0], list):
-                r_expr = r_expr[0]
-            l_expr.append(r_expr)
-            return l_expr
+        content = self.convert_semicolon_elements(expr.semicolon_elements())
+        # Sometimes people wrap either \boxed{a,b,c}, which we want to be a set,
+        # but also \boxed{1} which we want to be a number
+        if expr.BOXED_CMD():
+            return self.convert_elements_to_set_or_tuple(content)
+        return sympy.FiniteSet(*flatten_list(content))
 
-        return [self.convert_comma_elements(expr.comma_elements())]
+    def convert_semicolon_elements(self, expr):
+        result = [self.convert_comma_elements(element) for element in expr.comma_elements()]
+        return result
 
     def convert_semicolon_elements_no_relation(self, expr):
-        if expr.SEMICOLON():
-            l_expr = self.convert_semicolon_elements_no_relation(expr.semicolon_elements_no_relation(0))
-            r_expr = self.convert_semicolon_elements_no_relation(expr.semicolon_elements_no_relation(1))
-            if isinstance(r_expr[0], list):
-                r_expr = r_expr[0]
-            l_expr.append(r_expr)
-            return l_expr
-
-        return [self.convert_element(expr.element())]
+        result = [self.convert_comma_elements_no_relation(element) for element in expr.comma_elements_no_relation()]
+        return result
 
     def convert_comma_elements(self, expr):
-        if expr.COMMA():
-            l_expr = self.convert_comma_elements(expr.comma_elements(0))
-            r_expr = self.convert_comma_elements(expr.comma_elements(1))
-            return l_expr + r_expr
-
-        return self.convert_element(expr.element())
+        result = flatten_list(self.convert_element(element) for element in expr.element())
+        return result
 
     def convert_comma_elements_no_relation(self, expr):
-        if expr.COMMA():
-            l_expr = self.convert_comma_elements_no_relation(expr.comma_elements_no_relation(0))
-            r_expr = self.convert_comma_elements_no_relation(expr.comma_elements_no_relation(1))
-            return l_expr + r_expr
+        result = flatten_list(self.convert_element(element) for element in expr.element_no_relation())
+        return result
 
-        return self.convert_element(expr.element())
 
     def convert_element(self, element):
         if element.plus_minus_expr():
@@ -768,15 +800,21 @@ class _Latex2Sympy:
             elif op.transpose():
                 try:
                     exp = exp.T
+                except TimeoutError:
+                    raise
                 except:
                     try:
                         exp = sympy.transpose(exp)
+                    except TimeoutError:
+                        raise
                     except:
                         pass
                     pass
             elif op.degree() and self.convert_degrees:
                 try:
                     exp = sympy.Mul(exp, sympy.pi/180)
+                except TimeoutError:
+                    raise
                 except:
                     pass
 
@@ -899,6 +937,8 @@ class _Latex2Sympy:
                 shape = sympy.shape(rh)
                 matrix_symbol = sympy.MatrixSymbol(atom_text + subscript_text, shape[0], shape[1])
                 self.variances[matrix_symbol] = self.variances[atom_symbol]
+            except TimeoutError:
+                raise
             except:
                 pass
 
@@ -915,7 +955,10 @@ class _Latex2Sympy:
         return atom_symbol if not matrix_symbol else matrix_symbol
 
     def convert_atom_expr_list(self, atom_expr_list):
-        return sympy.Tuple(*[self.convert_atom_expr(atom_expr) for atom_expr in atom_expr_list.atom_expr()])
+        converted_atoms = [self.convert_atom_expr(atom_expr) for atom_expr in atom_expr_list.atom_expr()]
+        if len(converted_atoms) == 1:
+            return converted_atoms[0]
+        return sympy.Tuple(*converted_atoms)
 
     def convert_atom(self, atom):
         if atom.atom_expr():
@@ -926,12 +969,16 @@ class _Latex2Sympy:
                 return sympy.oo
             else:
                 raise Exception("Unrecognized symbol")
-        elif atom.NUMBER():
-            s = atom.NUMBER().getText()
-            return self.parse_number(s)
+        elif atom.number_subexpr():
+            # We just ignore the subexpr right now
+            s = atom.number_subexpr().NUMBER().getText()
+            number = self.parse_number(s)
+            return number
         elif atom.E_NOTATION():
             s = atom.E_NOTATION().getText()
             return self.parse_number(s)
+        elif atom.E_NOTATION_E():
+            return sympy.Symbol('E', real=self.is_real)
         elif atom.DIFFERENTIAL():
             diff_var = self.get_differential_var(atom.DIFFERENTIAL())
             return sympy.Symbol('d' + diff_var.name, real=self.is_real)
@@ -942,11 +989,12 @@ class _Latex2Sympy:
             atom_text = text[10:]
             atom_text = atom_text[0:len(atom_text) - trim_amount]
 
+            # Hynek: I don't think we want this to happen
             # replace the variable for already known variable values
-            if atom_text in self.var:
-                symbol = self.var[atom_text]
-            else:
-                symbol = sympy.Symbol(atom_text, real=self.is_real)
+            # if atom_text in self.var:
+            #     symbol = self.var[atom_text]
+            # else:
+            symbol = sympy.Symbol(atom_text, real=self.is_real)
 
             if is_percent:
                 return convert_to_pct(symbol)
@@ -957,7 +1005,7 @@ class _Latex2Sympy:
         elif atom.PERCENT_NUMBER():
             text = atom.PERCENT_NUMBER().getText().replace("\\%", "").replace("%", "").replace(",", "")
             number = self.parse_number(text)
-            percent = sympy.Mul(number, Rational(1, 100))
+            percent = sympy.Mul(number, Rational(1, 100), evaluate=False)
             return percent
     def parse_number(self, text):
         text = text.replace(",", "")
@@ -1116,7 +1164,7 @@ class _Latex2Sympy:
                     base = sympy.E
                 expr = sympy.log(arg, base, evaluate=False)
             elif name in ["exp", "exponentialE"]:
-                expr = sympy.exp(arg)
+                expr = sympy.exp(arg, evaluate=False)
             elif name == "floor":
                 expr = self.handle_floor(arg)
             elif name == "ceil":
@@ -1391,10 +1439,10 @@ class _Latex2Sympy:
 def convert_to_pct(number: Number):
     return sympy.Mul(number, sympy.Rational(1, 100), evaluate=False)
 
-def latex2sympy(latex_str: str, variable_values: dict | None = None, is_real=None, convert_degrees: bool = False, config: NormalizationConfig | None = NormalizationConfig(basic_latex=True, units=False, malformed_operators=False, nits=False, boxed=False, equations=False)):
-    converter = _Latex2Sympy(variable_values, is_real, convert_degrees)
-    if config is not None:
-        latex_str = normalize_latex(latex_str, config)
+def latex2sympy(latex_str: str, variable_values: dict | None = None, is_real=None, convert_degrees: bool = False, normalization_config: NormalizationConfig | None = NormalizationConfig(), conversion_config: ConversionConfig = ConversionConfig()):
+    converter = _Latex2Sympy(variable_values, is_real, convert_degrees, config=conversion_config)
+    if normalization_config is not None:
+        latex_str = normalize_latex(latex_str, normalization_config)
     return converter.parse(latex_str)
 
 
