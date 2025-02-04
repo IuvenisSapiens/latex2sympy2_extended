@@ -47,19 +47,29 @@ def convert_number(number: str):
         integer = "0"
     return Number(integer)
 
-def is_expr_of_only_symbols(expr):
+def is_assignment_symbol(expr):
     if hasattr(expr, 'is_Symbol') and expr.is_Symbol:
         return True
 
     # To allow A/S
     if hasattr(expr, 'is_Pow') and expr.is_Pow and expr.args[1] == -1 and (
         hasattr(expr.args[0], 'is_Symbol') and expr.args[0].is_Symbol
-        or hasattr(expr.args[0], 'args') and all(is_expr_of_only_symbols(arg) for arg in expr.args[0].args)
+        or hasattr(expr.args[0], 'args') and all(is_assignment_symbol(arg) for arg in expr.args[0].args)
     ):
         return True
-    
-    if hasattr(expr, 'args') and len(expr.args) > 0:
-        return all(is_expr_of_only_symbols(arg) for arg in expr.args)
+
+    # This ensures taht |A| is assigmnet symbol, AB is assignment symbol and X:Y is assignment symbol
+    if ((hasattr(expr, 'is_Mul')
+         and expr.is_Mul)
+         or (hasattr(expr, 'is_Pow')
+         and expr.is_Pow)
+         or (hasattr(expr, 'is_Function')
+         and expr.is_Function)
+         or isinstance(expr, (sympy.Abs, sympy.Set, sympy.Tuple))
+         
+         ) and hasattr(expr, 'args') and len(expr.args) > 0:
+        return all(is_assignment_symbol(arg) for arg in expr.args)
+
     return False
 
 
@@ -178,7 +188,7 @@ class _Latex2Sympy:
             return sympy.Eq(lh, rh, evaluate=False)
         elif rel.ASSIGNMENT():
             # !Use Global variances
-            if self.config.interpret_simple_eq_as_assignment and is_expr_of_only_symbols(lh):
+            if self.config.interpret_simple_eq_as_assignment and is_assignment_symbol(lh):
                 # set value
                 self.variances[lh] = rh
                 self.var[str(lh)] = rh
@@ -190,7 +200,7 @@ class _Latex2Sympy:
                     return And(lh, sympy.Eq(lh.rhs, rh, evaluate=False))
                 return sympy.Eq(lh, rh, evaluate=False)
         elif rel.APPROX():
-            if is_expr_of_only_symbols(lh):
+            if is_assignment_symbol(lh):
                 self.variances[lh] = rh
                 self.var[str(lh)] = rh
                 return rh
@@ -209,7 +219,7 @@ class _Latex2Sympy:
                 rh = sympy.MatrixSymbol(lh, n, m)
                 self.variances[lh] = rh
                 self.var[str(lh)] = rh
-            elif self.config.interpret_simple_eq_as_assignment and is_expr_of_only_symbols(lh):
+            elif self.config.interpret_simple_eq_as_assignment and is_assignment_symbol(lh):
                 self.variances[lh] = rh
                 self.var[str(lh)] = rh
                 return rh
@@ -229,7 +239,7 @@ class _Latex2Sympy:
             left = self.convert_atom_expr_list(expr.atom_expr_list())
             right = self.convert_set_relation(expr.set_relation()[0])
             if expr.IN():
-                if self.config.interpret_simple_eq_as_assignment and is_expr_of_only_symbols(left):
+                if self.config.interpret_simple_eq_as_assignment and is_assignment_symbol(left):
                     # set value
                     self.variances[left] = right
                     self.var[str(left)] = right
@@ -239,7 +249,7 @@ class _Latex2Sympy:
                 else:
                     return sympy.Contains(left, right, evaluate=False)
             elif expr.ASSIGNMENT():
-                if self.config.interpret_simple_eq_as_assignment and is_expr_of_only_symbols(left):
+                if self.config.interpret_simple_eq_as_assignment and is_assignment_symbol(left):
                     # set value
                     self.variances[left] = right
                     self.var[str(left)] = right
@@ -249,7 +259,7 @@ class _Latex2Sympy:
             elif expr.NOTIN():
                 if self.config.interpret_contains_as_eq:
                     val = (sympy.S.Reals if self.is_real else sympy.S.Complexes) - right
-                    if self.config.interpret_simple_eq_as_assignment and is_expr_of_only_symbols(left):
+                    if self.config.interpret_simple_eq_as_assignment and is_assignment_symbol(left):
                         self.variances[left] = val
                         self.var[str(left)] = val
                         return val
@@ -287,7 +297,7 @@ class _Latex2Sympy:
 
         atom_expressions = self.convert_atom_expr_list(expr.atom_expr_list())
         if expr.IN():
-            if self.config.interpret_simple_eq_as_assignment and is_expr_of_only_symbols(atom_expressions):
+            if self.config.interpret_simple_eq_as_assignment and is_assignment_symbol(atom_expressions):
                 # set value
                 self.variances[atom_expressions] = set_elements
                 self.var[str(atom_expressions)] = set_elements
@@ -297,7 +307,7 @@ class _Latex2Sympy:
             else:
                 return sympy.Contains(atom_expressions, set_elements, evaluate=False)
         elif expr.ASSIGNMENT():
-            if self.config.interpret_simple_eq_as_assignment and is_expr_of_only_symbols(atom_expressions):
+            if self.config.interpret_simple_eq_as_assignment and is_assignment_symbol(atom_expressions):
                 # set value
                 self.variances[atom_expressions] = set_elements
                 self.var[str(atom_expressions)] = set_elements
