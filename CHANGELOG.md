@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - YYYY-MM-DD
+
+### Changed
+- Reverted back the code for identification of assignment relations to use `is_assignment_symbol` instead of `is_expr_of_only_symbols`.
+- Changed `FiniteSet` to be translated to `latex2sympy2_extended.sets.FiniteSet`. This is to keep an order of elements in the set.
+
 ## [1.0.2]
 
 ### Changed
