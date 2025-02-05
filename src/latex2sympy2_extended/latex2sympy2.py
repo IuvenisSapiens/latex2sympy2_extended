@@ -382,7 +382,7 @@ class _Latex2Sympy:
                 return sympy.Tuple(left, right)
         except TimeoutError:
             raise
-        except:
+        except Exception:
             pass
 
         return sympy.Interval(left, right, left_open=left_open, right_open=right_open)
@@ -803,12 +803,12 @@ class _Latex2Sympy:
                     exp = exp.T
                 except TimeoutError:
                     raise
-                except:
+                except Exception:
                     try:
                         exp = sympy.transpose(exp)
                     except TimeoutError:
                         raise
-                    except:
+                    except Exception:
                         pass
                     pass
             elif op.degree() and self.convert_degrees:
@@ -816,7 +816,7 @@ class _Latex2Sympy:
                     exp = sympy.Mul(exp, sympy.pi/180)
                 except TimeoutError:
                     raise
-                except:
+                except Exception:
                     pass
 
         return exp
@@ -940,7 +940,7 @@ class _Latex2Sympy:
                 self.variances[matrix_symbol] = self.variances[atom_symbol]
             except TimeoutError:
                 raise
-            except:
+            except Exception:
                 pass
 
         # find the atom's superscript, and return as a Pow if found
