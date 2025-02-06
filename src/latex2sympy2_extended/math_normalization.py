@@ -252,7 +252,7 @@ def replace(match):
 def replace_in_latex(text: str) -> str:
     return to_replace_regex.sub(replace, text)
 
-VALID_SEPARATOR_PATTERN = re.compile(r'\s+and\s+|\s+or\s+|\s*,\s*')
+VALID_SEPARATOR_PATTERN = re.compile(r'^\s*(?:and|or|,)\s*$')
 def extract_boxed_content(text: str, mode: Literal["last", "all"] = "last") -> str:
     """
     Find and extract all \\boxed{...} or \\fbox{...} elements from a string, searching from right to left.
@@ -283,6 +283,7 @@ def extract_boxed_content(text: str, mode: Literal["last", "all"] = "last") -> s
     current_pos = len(text)
     last_boxed_start = None
     
+    max_pos = len(text)
     while True:
         boxed_idx = text.rfind("\\boxed", 0, current_pos)
         fbox_idx = text.rfind("\\fbox", 0, current_pos)
@@ -295,14 +296,14 @@ def extract_boxed_content(text: str, mode: Literal["last", "all"] = "last") -> s
         
         # Find opening brace
         next_char_pos = command_end
-        while next_char_pos < len(text) and text[next_char_pos].isspace():
+        while next_char_pos < max_pos and text[next_char_pos].isspace():
             next_char_pos += 1
             
-        if next_char_pos >= len(text):
+        if next_char_pos >= max_pos:
             break
             
         if text[next_char_pos] == "{":
-            boundaries = find_content_boundaries(text, next_char_pos, last_boxed_start if last_boxed_start is not None else len(text))
+            boundaries = find_content_boundaries(text, next_char_pos, max_pos)
             if not boundaries:
                 # This is our last box
                 if len(results) == 0:
@@ -313,11 +314,11 @@ def extract_boxed_content(text: str, mode: Literal["last", "all"] = "last") -> s
             
             if mode == "last" and last_boxed_start is not None:
                 if not has_valid_separator(text, content_end, last_boxed_start):
-                    results = results[:1]
                     break
             
             results.append(content)
             last_boxed_start = start_idx
+            max_pos = start_idx
         else:
             # This is our last box
             if len(results) == 0:
