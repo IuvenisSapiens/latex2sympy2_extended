@@ -252,20 +252,20 @@ def replace(match):
 def replace_in_latex(text: str) -> str:
     return to_replace_regex.sub(replace, text)
 
+VALID_SEPARATOR_PATTERN = re.compile(r'\s+and\s+|\s+or\s+|\s*,\s*')
 def extract_boxed_content(text: str, mode: Literal["last", "all"] = "last") -> str:
     """
     Find and extract all \\boxed{...} or \\fbox{...} elements from a string, searching from right to left.
     If mode is "last", return content up to the last valid separator.
     If mode is "all", return all boxed contents joined by commas.
     """
-    VALID_SEPARATOR_PATTERN = re.compile(r'\s+and\s+|\s+or\s+|\s*,\s*')
     
-    def find_content_boundaries(text: str, start_pos: int, opening_brace_pos: int) -> tuple[int, int] | None:
+    def find_content_boundaries(text: str, opening_brace_pos: int, max_pos: int) -> tuple[int, int] | None:
         # Start searching for closing brace from the opening brace position
         i = opening_brace_pos
         num_left_braces_open = 1  # We start after the opening brace
         
-        while i + 1 < len(text):  # Check if next position is within bounds
+        while i + 1 < max_pos:  # Check if next position is within bounds and max_pos
             i += 1
             if text[i] == "{":
                 num_left_braces_open += 1
@@ -277,7 +277,7 @@ def extract_boxed_content(text: str, mode: Literal["last", "all"] = "last") -> s
     
     def has_valid_separator(text: str, content_end: int, next_boxed_start: int) -> bool:
         between_text = text[content_end + 1:next_boxed_start]
-        return bool(VALID_SEPARATOR_PATTERN.search(between_text))
+        return bool(VALID_SEPARATOR_PATTERN.match(between_text))
     
     results = []
     current_pos = len(text)
@@ -302,7 +302,7 @@ def extract_boxed_content(text: str, mode: Literal["last", "all"] = "last") -> s
             break
             
         if text[next_char_pos] == "{":
-            boundaries = find_content_boundaries(text, start_idx, next_char_pos)
+            boundaries = find_content_boundaries(text, next_char_pos, last_boxed_start if last_boxed_start is not None else len(text))
             if not boundaries:
                 # This is our last box
                 if len(results) == 0:
