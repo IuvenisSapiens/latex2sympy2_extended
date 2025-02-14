@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import sympy
 import re
-from sympy import Basic, Matrix, MatrixBase, Number, Pow, Rational, Symbol, matrix_symbols, simplify, factor, expand, apart, expand_trig
+from sympy import Basic, Matrix, MatrixBase, Number, Pow, Rational, matrix_symbols, simplify, factor, expand, apart, expand_trig
 from antlr4 import InputStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
 from latex2sympy2_extended.symbols import get_symbol
@@ -31,11 +31,13 @@ class ConversionConfig:
     interpret_as_mixed_fractions: bool = True
     interpret_simple_eq_as_assignment: bool = False
     interpret_contains_as_eq: bool = True
+    lowercase_symbols: bool = True
     """
     Args:
         interpret_as_mixed_fractions (bool): Whether to interpert 2 \frac{1}{2} as 2/2 or 2 + 1/2
         interpret_simple_eq_as_assignment (bool): Whether to interpret simple equations as assignments k=1 -> 1
         interpret_contains_as_eq (bool): Whether to interpret contains as equality x \\in {1,2,3} -> x = {1,2,3}
+        lowercase_symbols (bool): Whether to lowercase all symbols
     """
 
 
@@ -929,7 +931,7 @@ class _Latex2Sympy:
                 subscript_text = '_' + subscript_inner_text
 
         # construct the symbol using the text and optional subscript
-        atom_symbol = get_symbol(atom_text.strip() + subscript_text, self.is_real)
+        atom_symbol = get_symbol(atom_text.strip() + subscript_text, self.is_real, self.config.lowercase_symbols)
         # for matrix symbol
         matrix_symbol = None
         if atom_text + subscript_text in self.var:
@@ -961,6 +963,12 @@ class _Latex2Sympy:
             return converted_atoms[0]
         return sympy.Tuple(*converted_atoms)
 
+    def create_symbol(self, text, enforce_case=False):
+        if self.config.lowercase_symbols and not enforce_case:
+            return sympy.Symbol(text.lower(), real=self.is_real)
+        else:
+            return sympy.Symbol(text, real=self.is_real)
+
     def convert_atom(self, atom):
         if atom.atom_expr():
             return self.convert_atom_expr(atom.atom_expr())
@@ -979,7 +987,7 @@ class _Latex2Sympy:
             s = atom.E_NOTATION().getText()
             return self.parse_number(s)
         elif atom.E_NOTATION_E():
-            return sympy.Symbol('E', real=self.is_real)
+            return self.create_symbol('E')
         elif atom.DIFFERENTIAL():
             diff_var = self.get_differential_var(atom.DIFFERENTIAL())
             return sympy.Symbol('d' + diff_var.name, real=self.is_real)
@@ -995,7 +1003,7 @@ class _Latex2Sympy:
             # if atom_text in self.var:
             #     symbol = self.var[atom_text]
             # else:
-            symbol = sympy.Symbol(atom_text, real=self.is_real)
+            symbol = self.create_symbol(atom_text)
 
             if is_percent:
                 return convert_to_pct(symbol)
@@ -1047,7 +1055,7 @@ class _Latex2Sympy:
                 wrt = wrt[1:]
 
         if diff_op or partial_op:
-            wrt = sympy.Symbol(wrt, real=self.is_real)
+            wrt = self.create_symbol(wrt, enforce_case=True)
             if (diff_op and frac.upper.start == frac.upper.stop and
                 frac.upper.start.type == PSLexer.LETTER_NO_E and
                     frac.upper.start.text == 'd'):
@@ -1304,15 +1312,15 @@ class _Latex2Sympy:
                 s = str(sym)
                 if len(s) > 1 and s[0] == 'd':
                     if s[1] == '\\':
-                        int_var = sympy.Symbol(s[2:], real=self.is_real)
+                        int_var = self.create_symbol(s[2:], enforce_case=True)
                     else:
-                        int_var = sympy.Symbol(s[1:], real=self.is_real)
+                        int_var = self.create_symbol(s[1:], enforce_case=True)
                     int_sym = sym
             if int_var:
                 integrand = integrand.subs(int_sym, 1)
             else:
                 # Assume dx by default
-                int_var = sympy.Symbol('x', real=self.is_real)
+                int_var = self.create_symbol('x', enforce_case=True)
 
         if func.subexpr():
             if func.subexpr().atom():
@@ -1346,13 +1354,13 @@ class _Latex2Sympy:
     def handle_limit(self, func):
         sub = func.limit_sub()
         if sub.LETTER_NO_E():
-            sub_var = sympy.Symbol(sub.LETTER_NO_E().getText(), real=self.is_real)
+            sub_var = self.create_symbol(sub.LETTER_NO_E().getText(), enforce_case=True)
         elif sub.GREEK_CMD():
             sub_var = get_symbol(sub.GREEK_CMD().getText().strip(), self.is_real)
         elif sub.OTHER_SYMBOL_CMD():
             sub_var = get_symbol(sub.OTHER_SYMBOL_CMD().getText().strip(), self.is_real)
         else:
-            sub_var = sympy.Symbol('x', real=self.is_real)
+            sub_var = self.create_symbol('x', enforce_case=True)
         if sub.SUB():
             direction = "-"
         else:
@@ -1409,7 +1417,7 @@ class _Latex2Sympy:
 
     def get_differential_var(self, d):
         text = self.get_differential_var_str(d.getText())
-        return sympy.Symbol(text, real=self.is_real)
+        return self.create_symbol(text, enforce_case=True)
 
 
     def get_differential_var_str(self, text):
