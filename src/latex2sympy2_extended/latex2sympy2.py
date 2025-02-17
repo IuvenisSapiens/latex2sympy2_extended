@@ -6,10 +6,7 @@ from antlr4 import InputStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
 from latex2sympy2_extended.symbols import get_symbol
 from latex2sympy2_extended.math_normalization import normalize_latex, NormalizationConfig
-
-from latex2sympy2_extended.gen.PSParser import PSParser
-from latex2sympy2_extended.gen.PSLexer import PSLexer
-from latex2sympy2_extended.gen.PSListener import PSListener
+from antlr_parser import PSParser, PSLexer
 import sympy.functions.elementary.trigonometric as sympy_trig
 import sympy.functions.elementary.hyperbolic as sympy_hyperbolic
 import sympy.functions.elementary.miscellaneous as sympy_misc
@@ -21,10 +18,6 @@ from sympy.matrices import GramSchmidt
 from latex2sympy2_extended.sets import FiniteSet
 
 from sympy.parsing.sympy_parser import parse_expr
-
-# Thigns that would be further improved:
-# - Support for ordered tuples, hard to distinguish between set and tuple, but if there are repeated elements, it's a tuple
-
 
 @dataclass(frozen=True)
 class ConversionConfig:

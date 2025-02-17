@@ -24,9 +24,15 @@
 **NOTICE:** comma separated numbers are only supported in standalone form: `1,233`, not in expressions: `1,233x`.
 
 ## Installation
+Current version supports 3 runtimes:
+- 4.9.3
+- 4.11.0
+- 4.13.2
 
+
+Use the following command to install with the runtime you need:
 ```
-pip install latex2sympy2_extended
+pip install latex2sympy2_extended[antlr4_13_2]
 ```
 
 **Requirements:** `sympy` and `antlr4-python3-runtime` packages.
