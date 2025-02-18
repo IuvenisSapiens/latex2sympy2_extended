@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.9]
+- Created proxy And class that keeps the _unsorted_args attribute
+- Add unary \\pm support
+- Fixed antlr4 runtime incorrect placement
+- Minor fix to how and are processed in normalization
+- Deprecated `equations` parameter in `NormalizationConfig`, as it is now handled by the parser
+
 ## [1.0.8]
 - Fixed bug with imports of antlr4 runtime
 

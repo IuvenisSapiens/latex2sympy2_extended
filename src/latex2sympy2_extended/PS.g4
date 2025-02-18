@@ -742,7 +742,7 @@ element:
     plus_minus_expr | set_atom | relation;
 
 plus_minus_expr:
-    expr PLUS_MINUS expr;
+    expr PLUS_MINUS expr | PLUS_MINUS expr;
 
 literal_set:
     SET_NATURALS | SET_INTEGERS | SET_RATIONALS | SET_REALS | SET_COMPLEX | SET_PRIMES | SET_EMPTY | L_BRACE R_BRACE;
