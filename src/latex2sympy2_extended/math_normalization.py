@@ -403,9 +403,6 @@ def _fix_a_slash_b(text: str) -> str:
         assert text == "{}/{}".format(a, b)
         new_string = "\\frac{" + str(a) + "}{" + str(b) + "}"
         return new_string
-    except TimeoutError:
-        raise
-
     except Exception:
         return text
 

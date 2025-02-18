@@ -35,6 +35,10 @@ def flatten_list(l):
     return [item for sublist in l for item in sublist]
 
 def convert_number(number: str):
+    # If it's 0,111 it's a float
+    if "," in number and number.startswith("0"):
+        number = number.replace(",", ".")
+
     integer = number.translate(str.maketrans("", "", ", ")).lstrip("0")
     if len(integer) == 0:
         integer = "0"
@@ -372,8 +376,6 @@ class _Latex2Sympy:
         try:
             if (left_open and right_open and right <= left) or (not left_open and not right_open and right < left):
                 return sympy.Tuple(left, right)
-        except TimeoutError:
-            raise
         except Exception:
             pass
 
@@ -804,21 +806,15 @@ class _Latex2Sympy:
             elif op.transpose():
                 try:
                     exp = exp.T
-                except TimeoutError:
-                    raise
                 except Exception:
                     try:
                         exp = sympy.transpose(exp)
-                    except TimeoutError:
-                        raise
                     except Exception:
                         pass
                     pass
             elif op.degree() and self.convert_degrees:
                 try:
                     exp = sympy.Mul(exp, sympy.pi/180)
-                except TimeoutError:
-                    raise
                 except Exception:
                     pass
 
@@ -941,8 +937,6 @@ class _Latex2Sympy:
                 shape = sympy.shape(rh)
                 matrix_symbol = sympy.MatrixSymbol(atom_text + subscript_text, shape[0], shape[1])
                 self.variances[matrix_symbol] = self.variances[atom_symbol]
-            except TimeoutError:
-                raise
             except Exception:
                 pass
 
