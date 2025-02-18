@@ -255,7 +255,7 @@ def replace(match):
 def replace_in_latex(text: str) -> str:
     return to_replace_regex.sub(replace, text)
 
-VALID_SEPARATOR_PATTERN = re.compile(r'^\s*(?:and|or|,)\s*$')
+VALID_SEPARATOR_PATTERN = re.compile(r'^.{0,70}?$')
 def extract_boxed_content(text: str, mode: Literal["last", "all"] = "last") -> str:
     """
     Find and extract all \\boxed{...} or \\fbox{...} elements from a string, searching from right to left.
