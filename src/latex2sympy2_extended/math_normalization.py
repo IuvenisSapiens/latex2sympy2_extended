@@ -1,6 +1,9 @@
 import re
 from dataclasses import dataclass
 from typing import Literal
+import logging
+
+logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class NormalizationConfig:
@@ -12,7 +15,7 @@ class NormalizationConfig:
     - malformed_operators: Fix malformed operators (sqrt, frac, etc.)
     - nits: Small formatting fixes (spaces, dots, etc.)
     - boxed: Extract content from boxed environments
-    - equations: Handle equation splitting and approximations
+    - equations: Handle equation splitting and approximations (deprecated)
     """
     basic_latex: bool = True
     units: bool = False
@@ -199,8 +202,8 @@ to_replace_patterns = [
     ("decimal_brace", r"\{\.", r"{0."),
     ("approx", r"\~\=", r"\approx"),
     ("comma", r"\s*\{\s*,\s*\}", r","),
-    ("and_or", r"(?<!\w)(?:and|or)(?!\w)", r";"),
-    ("and_or_text", r"(\\text{\s*(?:and|or)\s*})", r";"),
+    ("and_or", r"(?<![a-zA-Z])(,?\s*(?:and|or))(?![a-zA-Z])", r","),
+    ("and_or_text", r"(,?\s*\\text{\s*(?:and|or)\s*})", r","),
     ("backslash_space", r"(?<!\\)\\\s", r" "),
     # Empty text
     ("infinity", r"infinity", r"\infty"),
@@ -462,7 +465,7 @@ def normalize_latex(text: str, config: NormalizationConfig) -> str:
             text = command_slash_fix_regex.sub(r"\\", text)
     
     if config.equations:
-        
+        logger.warning("equations is deprecated, as it handled by the parser now")
         # This is to ensure that a=1,b=2 is not splitted
         if not "," in text and not ";" in text:
             eq_parts = equation_split_regex.split(text)
