@@ -32,7 +32,7 @@ def test_finite_sets():
     assert_equal("{x+y, 2x, y^2}", FiniteSet(_Add(x, y), _Mul(2, x), _Pow(y, 2)))
     # Test sets with plus-minus notation
     assert_equal("{x \\pm y}", FiniteSet(_Add(x, y), _Add(x, _Mul(-1, y))))
-    assert_equal("{2 \\pm 1}", FiniteSet(3, 1))
+    assert_equal("{2 \\pm 1}", FiniteSet(Add(2, -1, evaluate=False), Add(2, 1, evaluate=False)))
     assert_equal("1,2,3,4", FiniteSet(1, 2, 3, 4))
 
 def test_intervals():
@@ -104,7 +104,7 @@ def test_empty_set():
     assert_equal("\\{\\}", S.EmptySet)
 
 @pytest.mark.parametrize('input, output', [
-    ('$S_{MBCN}:S=7:32$', Eq(Mul(Symbol('S_{MBCN}'), Pow(Symbol('S'), -1)), Rational(7, 32), evaluate=False)),
+    ('$S_{MBCN}:S=7:32$', Eq(Mul(Symbol('s_{mbcn}'), Pow(Symbol('s'), -1)), Rational(7, 32), evaluate=False)),
     (r"$(37,3,3,13),(17,3,3,7),(3,37,3,13),(3,17,3,7),(3,3,2,3)$", FiniteSet(sympy.Tuple(37, 3, 3, 13), sympy.Tuple(17, 3, 3, 7), sympy.Tuple(3, 37, 3, 13), sympy.Tuple(3, 17, 3, 7), sympy.Tuple(3, 3, 2, 3))),
     ('$(0;0;0),(0;-2;0),(0;0;6),(0;-2;6),(4;0;0),(4;-2;0),(4;0;6),(4;-2;6)$', FiniteSet(sympy.Tuple(0, 0, 0), sympy.Tuple(0, -2, 0), sympy.Tuple(0, 0, 6), sympy.Tuple(0, -2, 6), sympy.Tuple(4, 0, 0), sympy.Tuple(4, -2, 0), sympy.Tuple(4, 0, 6), sympy.Tuple(4, -2, 6))),
     ('$1,2;3,4;5,6$', FiniteSet(sympy.Tuple(1, 2), sympy.Tuple(3, 4), sympy.Tuple(5, 6))),

@@ -147,31 +147,31 @@ class _Latex2Sympy:
 
         if rel.LT():
             if isinstance(lh, And):
-                return And(*lh.args, sympy.StrictLessThan(lh.args[-1].rhs, rh, evaluate=False))
+                return And(*lh._unsorted_args, sympy.StrictLessThan(lh._unsorted_args[-1].rhs, rh, evaluate=False))
             elif isinstance(lh, Relational):
                 return And(lh, sympy.StrictLessThan(lh.rhs, rh, evaluate=False))
             return sympy.StrictLessThan(lh, rh, evaluate=False)
         elif rel.LTE():
             if isinstance(lh, And):
-                return And(*lh.args, sympy.LessThan(lh.args[-1].rhs, rh, evaluate=False))
+                return And(*lh._unsorted_args, sympy.LessThan(lh._unsorted_args[-1].rhs, rh, evaluate=False))
             elif isinstance(lh, Relational):
                 return And(lh, sympy.LessThan(lh.rhs, rh, evaluate=False))
             return sympy.LessThan(lh, rh, evaluate=False)
         elif rel.GT():
             if isinstance(lh, And):
-                return And(*lh.args, sympy.StrictGreaterThan(lh.args[-1].rhs, rh, evaluate=False))
+                return And(*lh._unsorted_args, sympy.StrictGreaterThan(lh._unsorted_args[-1].rhs, rh, evaluate=False))
             elif isinstance(lh, Relational):
                 return And(lh, sympy.StrictGreaterThan(lh.rhs, rh, evaluate=False))
             return sympy.StrictGreaterThan(lh, rh, evaluate=False)
         elif rel.GTE():
             if isinstance(lh, And):
-                return And(*lh.args, sympy.GreaterThan(lh.args[-1].rhs, rh, evaluate=False))
+                return And(*lh._unsorted_args, sympy.GreaterThan(lh._unsorted_args[-1].rhs, rh, evaluate=False))
             elif isinstance(lh, Relational):
                 return And(lh, sympy.GreaterThan(lh.rhs, rh, evaluate=False))
             return sympy.GreaterThan(lh, rh, evaluate=False)
         elif rel.EQUAL():
             if isinstance(lh, And):
-                return And(*lh.args, sympy.Eq(lh.args[-1].rhs, rh, evaluate=False))
+                return And(*lh._unsorted_args, sympy.Eq(lh._unsorted_args[-1].rhs, rh, evaluate=False))
             elif isinstance(lh, Relational):
                 return And(lh, sympy.Eq(lh.rhs, rh, evaluate=False))
             return sympy.Eq(lh, rh, evaluate=False)
@@ -184,7 +184,7 @@ class _Latex2Sympy:
                 return rh
             else:
                 if isinstance(lh, And):
-                    return And(*lh.args, sympy.Eq(lh.args[-1].rhs, rh, evaluate=False))
+                    return And(*lh._unsorted_args, sympy.Eq(lh._unsorted_args[-1].rhs, rh, evaluate=False))
                 elif isinstance(lh, Relational):
                     return And(lh, sympy.Eq(lh.rhs, rh, evaluate=False))
                 return sympy.Eq(lh, rh, evaluate=False)
@@ -217,7 +217,7 @@ class _Latex2Sympy:
             return lh
         elif rel.UNEQUAL():
             if isinstance(lh, And):
-                return And(*lh.args, sympy.Ne(lh.args[-1].rhs, rh, evaluate=False))
+                return And(*lh._unsorted_args, sympy.Ne(lh._unsorted_args[-1].rhs, rh, evaluate=False))
             elif isinstance(lh, Relational):
                 return And(lh, sympy.Ne(lh.rhs, rh, evaluate=False))
             return sympy.Ne(lh, rh, evaluate=False)

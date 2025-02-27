@@ -255,7 +255,7 @@ def replace(match):
 def replace_in_latex(text: str) -> str:
     return to_replace_regex.sub(replace, text)
 
-VALID_SEPARATOR_PATTERN = re.compile(r'^.{0,70}?$')
+VALID_SEPARATOR_PATTERN = re.compile(r'and|or|,|;')
 def extract_boxed_content(text: str, mode: Literal["last", "all"] = "last") -> str:
     """
     Find and extract all \\boxed{...} or \\fbox{...} elements from a string, searching from right to left.
@@ -280,7 +280,8 @@ def extract_boxed_content(text: str, mode: Literal["last", "all"] = "last") -> s
     
     def has_valid_separator(text: str, content_end: int, next_boxed_start: int) -> bool:
         between_text = text[content_end + 1:next_boxed_start]
-        return bool(VALID_SEPARATOR_PATTERN.match(between_text))
+        # Making regex for it not worth it so this works
+        return len(between_text) < 70 and bool(VALID_SEPARATOR_PATTERN.search(between_text))
     
     results = []
     current_pos = len(text)
