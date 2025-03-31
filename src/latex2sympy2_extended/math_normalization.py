@@ -28,8 +28,6 @@ class NormalizationConfig:
 r_left = re.compile(r"\\m?left(\\\{|\{|\\\||\||\[|\(|\\rbracl|\\lgroup|\\lbrace|\\lbrack|\\vert|\\lvert|\\lceil|\\lfloor|\\vert|\\lvert|\\langle|\\llcorner|\\ulcorner)")
 r_right = re.compile(r"\\m?right(\\\}|\}|\\\||\||\]|\)|\\rbrack|\\rgroup|\\rbrace|\\rbrack|\\vert|\\rvert|\\rceil|\\rfloor|\\vert|\\rvert|\\rangle|\\lrcorner|\\urcorner)")
 
-empty_text_regex = re.compile(r"\\text\s*\{\s*\}")
-
 # Units regex
 units = [
     "integer" "point",
@@ -177,7 +175,8 @@ units = [
 # We sort here to that when matching from right the longest units are matched first
 # E.g "percent" is matched before "cent"
 
-units_regex = re.compile("|".join([f"(?=\\s)(?:{unit}(?:s|es)?)($|\\W)" for unit in units]))
+units_regex_pattern = f"(?:{'|'.join(units)})(?:s|es)?"
+units_regex = re.compile(f"(\\d|\\}}|\\s)\\s*(?:{units_regex_pattern})\\s*$")
 
 # Basic latex regex
 to_remove_regex = re.compile(
@@ -479,13 +478,12 @@ def normalize_latex(text: str, config: NormalizationConfig) -> str:
             
         # Remove unit texts
         for _ in range(2):
-            _text = units_regex.sub(r"\1\2", text)
+            _text = units_regex.sub(r"\1", text)
             if _text != "" and _text != text:
                 text = _text
         
         # This can trigger empty \text{...}
         # Make sure not to remove space this created
-        text = empty_text_regex.sub(" ", text)
     
     if config.nits:
         # Fix leading decimal
