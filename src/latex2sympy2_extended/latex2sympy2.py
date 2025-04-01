@@ -1428,15 +1428,12 @@ class _Latex2Sympy:
             text = text[1:]
         return text
 
-
-
     def sympy2latex(self, tex):
         result = sympy_latex(tex)
         result = result.replace(r'\left[\begin{matrix}', r'\begin{pmatrix}', -1).replace(r'\end{matrix}\right]', r'\end{pmatrix}', -1)
         return result
 
 
-    
 def latex2latex(latex_str: str, variable_values: dict | None = None, is_real=None, convert_degrees: bool = False, normalization_config: NormalizationConfig | None = NormalizationConfig(), conversion_config: ConversionConfig = ConversionConfig()):
     converter = _Latex2Sympy(variable_values, is_real, convert_degrees, config=conversion_config)
     if normalization_config is not None:
@@ -1445,7 +1442,13 @@ def latex2latex(latex_str: str, variable_values: dict | None = None, is_real=Non
     if isinstance(parsed_math, list) or isinstance(parsed_math, tuple) or isinstance(parsed_math, dict):
         return [converter.sympy2latex(tex) for tex in parsed_math]
     else:
-        return converter.sympy2latex(simplify(parsed_math.subs(converter.variances).doit().doit()))
+        # 首先进行变量代换
+        if converter.var:
+            parsed_math = parsed_math.subs(converter.var)
+        # 然后进行简化和计算
+        parsed_math = simplify(parsed_math.doit().doit())
+        return converter.sympy2latex(parsed_math) 
+
 
 def convert_to_pct(number: Number):
     return sympy.Mul(number, sympy.Rational(1, 100), evaluate=False)
@@ -1461,3 +1464,4 @@ if __name__ == "__main__":
     # print(normalize_latex("20 \\%", NormalizationConfig(basic_latex=True, units=True, malformed_operators=False, nits=True, boxed=False, equations=True)))
     print(latex2sympy(r"\boxed{\text{C,  E}}"))
     print(latex2sympy(r"0.111"))
+    print(latex2latex(r"x+1", {"x": "y_1"}))
