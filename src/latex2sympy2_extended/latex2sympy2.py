@@ -17,7 +17,7 @@ from sympy.matrices import GramSchmidt
 from latex2sympy2_extended.sets import FiniteSet
 from latex2sympy2_extended.logic import And
 from sympy.parsing.sympy_parser import parse_expr
-
+from sympy.printing.latex import latex as sympy_latex
 @dataclass(frozen=True)
 class ConversionConfig:
     interpret_as_mixed_fractions: bool = True
@@ -444,7 +444,7 @@ class _Latex2Sympy:
             raise Exception('Unrecognized comma element')
     
 
-        # Fallback because for some reason finites set wtih paren parses sometimes first
+        # Fallback because for some reason finites set with paren parses sometimes first
         # instead of interval
         return elements
 
@@ -1428,19 +1428,23 @@ class _Latex2Sympy:
             text = text[1:]
         return text
 
-# # Set image value
-# latex2latex('i=I')
-# latex2latex('j=I')
-# # set Identity(i)
-# for i in range(1, 10):
-#     lh = sympy.Symbol(r'\bm{I}_' + str(i), real=False)
-#     lh_m = sympy.MatrixSymbol(r'\bm{I}_' + str(i), i, i)
-#     rh = sympy.Identity(i).as_mutable()
-#     variances[lh] = rh
-#     variances[lh_m] = rh
-#     var[str(lh)] = rh
 
-# Common regex
+
+    def sympy2latex(self, tex):
+        result = sympy_latex(tex)
+        return result
+
+
+    
+def latex2latex(latex_str: str, variable_values: dict | None = None, is_real=None, convert_degrees: bool = False, normalization_config: NormalizationConfig | None = NormalizationConfig(), conversion_config: ConversionConfig = ConversionConfig()):
+    converter = _Latex2Sympy(variable_values, is_real, convert_degrees, config=conversion_config)
+    if normalization_config is not None:
+        latex_str = normalize_latex(latex_str, normalization_config)
+    parsed_math = converter.parse(latex_str)
+    if isinstance(parsed_math, list) or isinstance(parsed_math, tuple) or isinstance(parsed_math, dict):
+        return [converter.sympy2latex(tex) for tex in parsed_math]
+    else:
+        return converter.sympy2latex(simplify(parsed_math.subs(converter.variances).doit().doit()))
 
 def convert_to_pct(number: Number):
     return sympy.Mul(number, sympy.Rational(1, 100), evaluate=False)
