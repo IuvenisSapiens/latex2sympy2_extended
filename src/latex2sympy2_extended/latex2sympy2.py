@@ -1432,6 +1432,7 @@ class _Latex2Sympy:
 
     def sympy2latex(self, tex):
         result = sympy_latex(tex)
+        result = result.replace(r'\left[\begin{matrix}', r'\begin{pmatrix}', -1).replace(r'\end{matrix}\right]', r'\end{pmatrix}', -1)
         return result
 
 
