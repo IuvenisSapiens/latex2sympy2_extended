@@ -1464,4 +1464,4 @@ if __name__ == "__main__":
     # print(normalize_latex("20 \\%", NormalizationConfig(basic_latex=True, units=True, malformed_operators=False, nits=True, boxed=False, equations=True)))
     print(latex2sympy(r"\boxed{\text{C,  E}}"))
     print(latex2sympy(r"0.111"))
-    print(latex2latex(r"x+1", {"x": "y_1"}))
+    print(latex2latex(r"x+1", {"x": latex2sympy(r"y_1+3^2-\sqrt{2}i")}))

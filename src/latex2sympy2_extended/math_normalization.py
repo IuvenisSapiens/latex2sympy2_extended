@@ -444,6 +444,7 @@ def normalize_latex(text: str, config: NormalizationConfig) -> str:
     if config.basic_latex:
         # Basic latex command replacements
         text = text.replace(r'\mathrm{T}', 'T')
+        text = text.replace(r'\limits', '')
         text = text.replace(r'\mathrm{d}', 'd').replace(r'{\rm d}', 'd')
         text = text.replace(r'\left[\begin{matrix}', r'\begin{bmatrix}').replace(r'\end{matrix}\right]', r'\end{bmatrix}')
         text = r_left.sub(r'\1', text)
@@ -464,7 +465,7 @@ def normalize_latex(text: str, config: NormalizationConfig) -> str:
     if config.equations:
         logger.warning("equations is deprecated, as it handled by the parser now")
         # This is to ensure that a=1,b=2 is not splitted
-        if not "," in text and not ";" in text:
+        if "," not in text and ";" not in text:
             eq_parts = equation_split_regex.split(text)
             # We only shorten if there are more than 2 parts, otherwise we keep equation as is
             if len(eq_parts) > 2:
