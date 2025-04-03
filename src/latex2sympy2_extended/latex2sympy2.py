@@ -1457,11 +1457,21 @@ def latex2sympy(latex_str: str, variable_values: dict | None = None, is_real=Non
     converter = _Latex2Sympy(variable_values, is_real, convert_degrees, config=conversion_config)
     if normalization_config is not None:
         latex_str = normalize_latex(latex_str, normalization_config)
-    return converter.parse(latex_str)
+    parsed_math = converter.parse(latex_str)
+    # 首先进行变量代换
+    if converter.var:
+        parsed_math = parsed_math.subs(converter.var)
+    # 然后进行简化和计算
+    parsed_math = simplify(parsed_math.doit().doit())
+    return parsed_math
 
 
 if __name__ == "__main__":
     # print(normalize_latex("20 \\%", NormalizationConfig(basic_latex=True, units=True, malformed_operators=False, nits=True, boxed=False, equations=True)))
     print(latex2sympy(r"\boxed{\text{C,  E}}"))
     print(latex2sympy(r"0.111"))
+    print(latex2sympy(r"x+1", {"x": latex2sympy(r"y_1+3^2-\sqrt{2}i")}))
     print(latex2latex(r"x+1", {"x": latex2sympy(r"y_1+3^2-\sqrt{2}i")}))
+    converter = _Latex2Sympy(is_real=False, convert_degrees=False)
+    converter.var = {"x":"1", "y":"2", "z":"3"}
+    print(latex2latex(r"x+1", variable_values=converter.var))
