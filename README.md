@@ -6,7 +6,7 @@
 
 `latex2sympy2_extended` parses **LaTeX math expressions** and converts it into the equivalent **SymPy form**. The latex2sympy2_extended is adapted from [huggingface/latex2sympy2_extended](https://github.com/huggingface/latex2sympy2_extended).
 
-[ANTLR](http://www.antlr.org/) 4.13.1 is used to generate the parser.
+[ANTLR](http://www.antlr.org/) 4.13.2 is used to generate the parser.
 
 ## Features
 
@@ -19,9 +19,10 @@
 * **Set:** Union (∪), Intersection (∩), etc...
 * **Other:** Binomial...
 
-**NOTICE:** It will do some irreversible calculations when converting determinants, transposed matrixes and elementary transformations...
-
-**NOTICE:** comma separated numbers are only supported in standalone form: `1,233`, not in expressions: `1,233x`.
+> [!note]
+>
+> * It will do some irreversible calculations when converting determinants, transposed matrixes and elementary transformations...
+> * comma separated numbers are only supported in standalone form: `1,233`, not in expressions: `1,233x`.
 
 ## Installation
 
@@ -34,7 +35,7 @@ Current version supports 3 runtimes:
 Use the following command to install with the runtime you need:
 
 ```sh
-pip install latex2sympy2_extended[antlr4_13_2]
+pip install latex2sympy2_extended
 ```
 
 **Requirements:** `sympy` and `antlr4-python3-runtime` packages.
