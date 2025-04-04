@@ -55,13 +55,13 @@ latex2sympy(tex)
 
 ### Examples
 
-|LaTeX|Converted SymPy|Calculated Latex|
-|-----|-----|---------------|
-|`x^{3}` $x^{3}$| `x**3`|`x^{3}` $x^{3}$|
-|`\frac{d}{dx} tx` $\frac{d}{dx}tx$|`Derivative(x*t, x)`|`t` $t$|
-|`\sum_{i = 1}^{n} i` $\sum_{i = 1}^{n} i$|`Sum(i, (i, 1, n))`|`\frac{n \left(n + 1\right)}{2}` $\frac{n \left(n + 1\right)}{2}$|
-|`\int_{a}^{b} \frac{dt}{t}`|`Integral(1/t, (t, a, b))`|`-\log{(a)} + \log{(b)}` $-\log{(a)} + \log{(b)}$|
-|`(2x^3 - x + z)\|_{x=3}` $(2x^3 - x + z)\|_{x=3}$|`z + 51`| `z + 51` $z + 51$ |
+| LaTeX                                             | Converted SymPy            | Calculated Latex                                                  |
+|---------------------------------------------------|----------------------------|-------------------------------------------------------------------|
+| `x^{3}` $x^{3}$                                   | `x**3`                     | `x^{3}` $x^{3}$                                                   |
+| `\frac{d}{dx} tx` $\frac{d}{dx}tx$                | `Derivative(x*t, x)`       | `t` $t$                                                           |
+| `\sum_{i = 1}^{n} i` $\sum_{i = 1}^{n} i$         | `Sum(i, (i, 1, n))`        | `\frac{n \left(n + 1\right)}{2}` $\frac{n \left(n + 1\right)}{2}$ |
+| `\int_{a}^{b} \frac{dt}{t}` $\int_{a}^{b} \frac{dt}{t}$                       | `Integral(1/t, (t, a, b))` | `-\log{(a)} + \log{(b)}` $-\log{(a)} + \log{(b)}$                 |
+| `(2x^3 - x + z)\|_{x=3}` $(2x^3 - x + z)\|_{x=3}$ | `z + 51`                   | `z + 51` $z + 51$                                                 |
 
 ### Eval At
 
