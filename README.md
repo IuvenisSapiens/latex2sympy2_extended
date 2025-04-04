@@ -1,20 +1,20 @@
-![Logo](https://picgo-1258602555.cos.ap-nanjing.myqcloud.com/icon.png)
+![Logo](./icon.png)
 
-# [latex2sympy2_extended](https://github.com/hynky1999/latex2sympy2_extended)
+# [latex2sympy2_extended](https://github.com/IuvenisSapiens/latex2sympy2_extended)
 
 ## About
 
-`latex2sympy2_extended` parses **LaTeX math expressions** and converts it into the equivalent **SymPy form**. The latex2sympy2_extended is adapted from [OrangeX4/latex2sympy](https://github.com/OrangeX4/latex2sympy).
+`latex2sympy2_extended` parses **LaTeX math expressions** and converts it into the equivalent **SymPy form**. The latex2sympy2_extended is adapted from [huggingface/latex2sympy2_extended](https://github.com/huggingface/latex2sympy2_extended).
 
 [ANTLR](http://www.antlr.org/) 4.13.1 is used to generate the parser.
-## Features
 
+## Features
 
 * **Arithmetic:** Add (+), Sub (-), Dot Mul (·), Cross Mul (×), Frac (/), Power (^), Abs (|x|), Sqrt (√), etc...
 * **Alphabet:** a - z, A - Z, α - ω, Subscript (x_1), Accent Bar(ā), etc...
 * **Common Functions:** gcd, lcm, floor, ceil, max, min, log, ln, exp, sin, cos, tan, csc, sec, cot, arcsin, sinh, arsinh, etc...
 * **Funcion Symbol:** f(x), f(x-1,), g(x,y), etc...
-* **Calculous:** Limit ($lim_{n\to\infty}$), Derivation ($\frac{d}{dx}(x^2+x)$), Integration ($\int xdx$), etc...
+* **Calculous:** Limit ($\lim_{n\to\infty}$), Derivation ($\frac{d}{dx}(x^2+x)$), Integration ($\int xdx$), etc...
 * **Linear Algebra:** Matrix, Determinant, Transpose, Inverse, Elementary Transformation, etc...
 * **Set:** Union (∪), Intersection (∩), etc...
 * **Other:** Binomial...
@@ -24,14 +24,16 @@
 **NOTICE:** comma separated numbers are only supported in standalone form: `1,233`, not in expressions: `1,233x`.
 
 ## Installation
-Current version supports 3 runtimes:
-- 4.9.3
-- 4.11.0
-- 4.13.2
 
+Current version supports 3 runtimes:
+
+* 4.9.3
+* 4.11.0
+* 4.13.2
 
 Use the following command to install with the runtime you need:
-```
+
+```sh
 pip install latex2sympy2_extended[antlr4_13_2]
 ```
 
@@ -59,8 +61,7 @@ latex2sympy(tex)
 |`\frac{d}{dx} tx` $\frac{d}{dx}tx$|`Derivative(x*t, x)`|`t` $t$|
 |`\sum_{i = 1}^{n} i` $\sum_{i = 1}^{n} i$|`Sum(i, (i, 1, n))`|`\frac{n \left(n + 1\right)}{2}` $\frac{n \left(n + 1\right)}{2}$|
 |`\int_{a}^{b} \frac{dt}{t}`|`Integral(1/t, (t, a, b))`|`-\log{(a)} + \log{(b)}` $-\log{(a)} + \log{(b)}$|
-|`(2x^3 - x + z)|_{x=3}` $(2x^3 - x + z)\|_{x=3}$|`z + 51`| `z + 51` $z + 51$ |
-
+|`(2x^3 - x + z)\|_{x=3}` $(2x^3 - x + z)\|_{x=3}$|`z + 51`| `z + 51` $z + 51$ |
 
 ### Eval At
 
@@ -77,7 +78,7 @@ y + 3
 #### Determinant
 
 ``` python
-from latex2sympy2 import latex2sympy
+from latex2sympy2_extended import latex2sympy
 
 tex = r"\begin{vmatrix} x & 0 & 0 \\ 0 & x & 0 \\ 0 & 0 & x \end{vmatrix}"
 latex2sympy(tex)
@@ -87,7 +88,7 @@ latex2sympy(tex)
 #### Transpose
 
 ``` python
-from latex2sympy2 import latex2sympy
+from latex2sympy2_extended import latex2sympy
 
 tex = r"\begin{pmatrix} 1 & 2 & 3 \\ 4 & 5 & 6 \\ 7 & 8 & 9 \end{pmatrix}^T"
 # Or you can use "\begin{pmatrix}1&2&3\\4&5&6\\7&8&9\end{pmatrix}'"
@@ -98,7 +99,7 @@ latex2sympy(tex)
 #### Elementary Transformation
 
 ``` python
-from latex2sympy2 import latex2sympy
+from latex2sympy2_extended import latex2sympy
 
 matrix = r'''
     \begin{pmatrix}
@@ -136,15 +137,14 @@ latex2sympy(tex)
 ### Complex Number Support
 
 ``` python
-from latex2sympy2 import set_real
+from latex2sympy2_extended import set_real
 
 set_real(False)
 ```
 
-
 ## Contributing
 
-If you want to add a new grammar, you can fork the code from [hynky1999/latex2sympy2_extended](https://github.com/hynky1999/latex2sympy2_extended).
+If you want to add a new grammar, you can fork the code from [IuvenisSapiens/latex2sympy2_extended](https://github.com/IuvenisSapiens/latex2sympy2_extended).
 
 * To modify parser grammar, view the existing structure in `src/latex2sympy2_extended/PS.g4`.
 * To modify the action associated with each grammar, look into `src/latex2sympy2_extended/latex2sympy2.py`.
