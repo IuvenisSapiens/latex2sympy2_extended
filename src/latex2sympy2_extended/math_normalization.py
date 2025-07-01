@@ -208,8 +208,14 @@ to_replace_patterns = [
     ("infinity", r"infinity", r"\infty"),
     # Dots
     ("dot", r",?(\\ldots)", r" "),
-    ("percent", r"\s*percent", r"\\%"),
-    ("percent_in_text", r"\\text{percent}", r"\\%"),
+    # Support additional synonyms for percent used in model outputs
+    ("percentage", r"\s*percentage", r"\%"),
+    ("percentage_in_text", r"\\text{percentage}", r"\%"),
+    # It's important to have percent before percentage, as percentage is a substring of percent
+    ("percent", r"\s*percent", r"\%"),
+    ("percent_in_text", r"\\text{percent}", r"\%"),
+    ("pct", r"\s*pct", r"\%"),
+    ("pct_in_text", r"\\text{pct}", r"\%"),
     ("inf", r"((?<!\\)inf(?!inity))", r"\infty"),
     ("sqrt", r" sqrt", r"\sqrt"),
 ]
