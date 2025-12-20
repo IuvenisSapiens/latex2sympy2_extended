@@ -132,11 +132,19 @@ FUNC_DET: '\\det';
 
 FUNC_EYE_NAME: 'eye';
 FUNC_ZEROS_NAME: 'zeros';
+FUNC_SERIES_NAME: 'series';
 FUNC_ONES_NAME: 'ones';
+FUNC_JORDAN_BLOCK_NAME: 'jb' | 'JB';
 FUNC_COLS_NAME: 'cols';
 FUNC_ROWS_NAME: 'rows';
 FUNC_DIAG_NAME: 'diag';
 FUNC_NORM_NAME: 'norm';
+FUNC_NORMI_NAME: 'normi';
+FUNC_NORMII_NAME: 'normii';
+FUNC_NORMINF_NAME: 'normoo';
+FUNC_NORM_I_NAME: 'norm-i';
+FUNC_NORM_II_NAME: 'norm-ii';
+FUNC_NORM_INF_NAME: 'norm-oo';
 FUNC_RANK_NAME: 'rank';
 FUNC_TRACE_NAME: 'trace' | 'tr';
 FUNC_RREF_NAME: 'rref';
@@ -148,6 +156,29 @@ FUNC_DIAGONALIZE_NAME: 'eig' | 'eigen' | 'diagonalize';
 FUNC_EIGENVALS_NAME: 'eigenvals' | 'eigenvalues';
 FUNC_EIGENVECTORS_NAME: 'eigenvects' | 'eigenvectors';
 FUNC_SVD_NAME: 'svd' | 'SVD';
+FUNC_SV_NAME: 'sv' | 'SV';
+FUNC_QR_NAME: 'qr' | 'QR';
+FUNC_RANK_DECOMPOSITION_NAME: 'rankdecomposition' | 'RANKDECOMPOSITION';
+FUNC_LU_NAME: 'lu' | 'LU';
+FUNC_LUFF_NAME: 'luff' | 'LUFF';
+FUNC_JF_NAME: 'jf' | 'JF';
+FUNC_CHOLESKY_NAME: 'cholesky' | 'CHOLESKY';
+FUNC_PD_NAME: 'pd' | 'PD';
+FUNC_PSD_NAME: 'psd' | 'PSD';
+FUNC_ND_NAME: 'nd' | 'ND';
+FUNC_NSD_NAME: 'nsd' | 'NSD';
+FUNC_IND_NAME: 'ind' | 'IND';
+FUNC_ECHELON_FORM_NAME: 'echelonform' | 'ECHELONFORM';
+FUNC_ISEF_NAME: 'isef' | 'ISEF';
+FUNC_IS_NILPOTENT_NAME: 'isnilpotent' | 'ISNILPOTENT';
+FUNC_IS_DIAGONALIZABLE_NAME: 'isdiagonalizable' | 'ISDIAGONALIZABLE';
+FUNC_IS_HERMITIAN_NAME: 'ishermitian' | 'ISHERMITIAN';
+FUNC_IS_SYMMETRIC_NAME: 'issymmetric' | 'ISSYMMETRIC';
+FUNC_IS_SQUARE_NAME: 'issquare' | 'ISSQUARE';
+FUNC_IS_LOWER_NAME: 'islower' | 'ISLOWER';
+FUNC_IS_UPPER_NAME: 'isupper' | 'ISUPPER';
+FUNC_GET_DIAG_BLOCKS_NAME: 'getdiagblocks' | 'GETDIAGBLOCKS';
+FUNC_PINV_NAME: 'pinv' | 'PINV';
 
 //commands
 CMD_TIMES: '\\times';
@@ -405,6 +436,8 @@ NOTIN: '\\notin' | '∉';
 math: (set_elements_relation | set_elements | set_relation) EOF;
 
 transpose: '^T' | '^{T}' |  '^{\\\top}' | '\'';
+conjugate: '^C' | '^{C}';
+ConjugateTranspose: '^H' | '^{H}';
 degree: '^\\circ' | '^\\degree' | '^\\circle' | '^°' | '^{\\circ}' | '^{\\degree}' | '^{\\circle}' | '^{°}';
 
 transform_atom: LETTER_NO_E UNDERSCORE (NUMBER | L_BRACE NUMBER R_BRACE);
@@ -413,6 +446,11 @@ transform_swap: transform_atom TRANSFORM_EXCHANGE transform_atom;
 transform_assignment: transform_atom transform_scale;
 elementary_transform: transform_assignment | transform_scale | transform_swap;
 elementary_transforms: elementary_transform (COMMA elementary_transform)*;
+extract_submatrix: NUMBER (COMMA NUMBER)*;
+extract_entry: NUMBER;
+row_col_del: '\\text{DEL}' transform_atom (COMMA transform_atom)*;
+row_col_insert: '\\text{INSERT}' transform_atom COMMA matrix;
+row_col_del_insert: row_col_del | row_col_insert;
 
 matrix:
     (CMD_MATRIX_START
@@ -420,7 +458,10 @@ matrix:
     CMD_MATRIX_END | CMD_ARRAY_START
     matrix_row (MATRIX_DEL_ROW matrix_row)* MATRIX_DEL_ROW?
     CMD_ARRAY_END)
-    (MATRIX_XRIGHTARROW (L_BRACKET elementary_transforms R_BRACKET)? L_BRACE elementary_transforms R_BRACE)?;
+    (MATRIX_XRIGHTARROW (L_BRACKET elementary_transforms R_BRACKET)? L_BRACE elementary_transforms R_BRACE)?
+    (MATRIX_XRIGHTARROW (L_BRACKET row_col_del_insert R_BRACKET)? L_BRACE row_col_del_insert R_BRACE)?
+    (UNDERSCORE L_BRACE L_BRACKET extract_submatrix R_BRACKET COMMA L_BRACKET extract_submatrix R_BRACKET R_BRACE)?
+    (UNDERSCORE L_BRACE extract_entry COMMA extract_entry R_BRACE)?;
 
 det:
     CMD_DET_START
@@ -462,7 +503,7 @@ unary_nofunc:
 
 postfix: exp postfix_op*;
 postfix_nofunc: exp_nofunc postfix_op*;
-postfix_op: BANG | eval_at | transpose | degree;
+postfix_op: BANG | eval_at | transpose | conjugate | ConjugateTranspose | degree;
 
 eval_at:
     BAR (eval_at_sup | eval_at_sub | eval_at_sup eval_at_sub);
@@ -591,12 +632,12 @@ func_operator_names_single_arg:
     FUNC_ARSINH_NAME | FUNC_ARCOSH_NAME | FUNC_ARTANH_NAME
     | FUNC_ARCSINH_NAME | FUNC_ARCCOSH_NAME | FUNC_ARCTANH_NAME
     | FUNC_FLOOR_NAME | FUNC_CEIL_NAME | FUNC_EYE_NAME | FUNC_RANK_NAME | FUNC_TRACE_NAME
-    | FUNC_RREF_NAME | FUNC_NULLSPACE_NAME | FUNC_DIAGONALIZE_NAME | FUNC_NORM_NAME
-    | FUNC_EIGENVALS_NAME | FUNC_EIGENVECTORS_NAME | FUNC_SVD_NAME | FUNC_COLS_NAME | FUNC_ROWS_NAME;
+    | FUNC_RREF_NAME | FUNC_NULLSPACE_NAME | FUNC_DIAGONALIZE_NAME | FUNC_NORM_NAME | FUNC_NORMI_NAME | FUNC_NORMII_NAME | FUNC_NORMINF_NAME | FUNC_NORM_I_NAME | FUNC_NORM_II_NAME | FUNC_NORM_INF_NAME
+    | FUNC_EIGENVALS_NAME | FUNC_EIGENVECTORS_NAME | FUNC_SVD_NAME | FUNC_SV_NAME | FUNC_COLS_NAME | FUNC_ROWS_NAME | FUNC_QR_NAME | FUNC_RANK_DECOMPOSITION_NAME | FUNC_LU_NAME | FUNC_LUFF_NAME | FUNC_JF_NAME | FUNC_CHOLESKY_NAME | FUNC_PD_NAME | FUNC_PSD_NAME | FUNC_ND_NAME | FUNC_NSD_NAME | FUNC_IND_NAME | FUNC_ECHELON_FORM_NAME | FUNC_ISEF_NAME | FUNC_IS_NILPOTENT_NAME | FUNC_IS_DIAGONALIZABLE_NAME | FUNC_IS_HERMITIAN_NAME | FUNC_IS_SYMMETRIC_NAME | FUNC_IS_SQUARE_NAME | FUNC_IS_LOWER_NAME | FUNC_IS_UPPER_NAME | FUNC_GET_DIAG_BLOCKS_NAME | FUNC_PINV_NAME;
 
 func_operator_names_multi_arg:
-    FUNC_GCD_NAME | FUNC_LCM_NAME | FUNC_ZEROS_NAME | FUNC_ORTHOGONALIZE_NAME
-    | FUNC_ONES_NAME | FUNC_DIAG_NAME | FUNC_HSTACK_NAME | FUNC_VSTACK_NAME;
+    FUNC_GCD_NAME | FUNC_LCM_NAME | FUNC_ZEROS_NAME | FUNC_SERIES_NAME | FUNC_ORTHOGONALIZE_NAME
+    | FUNC_ONES_NAME | FUNC_DIAG_NAME | FUNC_HSTACK_NAME | FUNC_VSTACK_NAME | FUNC_JORDAN_BLOCK_NAME;
 
 func_normal_single_arg:
     (func_normal_functions_single_arg)

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import sympy
 import re
-from sympy import Basic, Matrix, MatrixBase, Number, Pow, Rational, matrix_symbols, simplify, factor, expand, apart, expand_trig
+from sympy import Basic, Matrix, MatrixBase, Number, Pow, Rational, matrix_symbols, simplify, factor, expand, apart, expand_trig, oo
 from antlr4 import InputStream, CommonTokenStream
 from antlr4.error.ErrorListener import ErrorListener
 from latex2sympy2_extended.symbols import get_symbol
@@ -446,7 +446,7 @@ class _Latex2Sympy:
 
         # Fallback because for some reason finites set with paren parses sometimes first
         # instead of interval
-        return elements
+        return element
 
     def convert_literal_set(self, expr):
         if expr.SET_NATURALS():
@@ -546,7 +546,7 @@ class _Latex2Sympy:
 
         mat = sympy.Matrix(tmp)
 
-        if hasattr(matrix, 'MATRIX_XRIGHTARROW') and matrix.MATRIX_XRIGHTARROW():
+        if hasattr(matrix, 'MATRIX_XRIGHTARROW') and matrix.MATRIX_XRIGHTARROW() and hasattr(matrix, 'elementary_transforms'):
             transforms_list = matrix.elementary_transforms()
             if len(transforms_list) == 1:
                 for transform in transforms_list[0].elementary_transform():
@@ -558,6 +558,268 @@ class _Latex2Sympy:
                 # firstly transform bottom of xrightarrow
                 for transform in transforms_list[0].elementary_transform():
                     mat = self.convert_elementary_transform(mat, transform)
+        if hasattr(matrix, 'MATRIX_XRIGHTARROW') and matrix.MATRIX_XRIGHTARROW() and hasattr(matrix, 'row_col_del_insert'):
+            transforms_list = matrix.row_col_del_insert()
+            if len(transforms_list) == 1 and transforms_list[0].row_col_del():
+                # print(matrix.row_col_del_insert()[0].getText())
+                # print(matrix.row_col_del_insert()[0].row_col_del().transform_atom()[1].getText())
+                row_num = []
+                col_num = []
+                transform_atoms = transforms_list[0].row_col_del().transform_atom()
+                for transform_atom in transform_atoms:
+                    if transform_atom.LETTER_NO_E().getText() == 'r':
+                        num = int(transform_atom.NUMBER().getText()) - 1
+                        row_num.append(num)
+                    elif transform_atom.LETTER_NO_E().getText() == 'c':
+                        num = int(transform_atom.NUMBER().getText()) - 1
+                        col_num.append(num)
+                if len(row_num) > 0:
+                    row_num.sort(reverse=True)
+                    for row in row_num:
+                        try:
+                            mat.row_del(row)
+                        except Exception:
+                            raise Exception('Row and col don\'s match')
+                if len(col_num) > 0:
+                    col_num.sort(reverse=True)
+                    for col in col_num:
+                        try:
+                            mat.col_del(col)
+                        except Exception:
+                            raise Exception('Row and col don\'s match')
+            elif len(transforms_list) == 1 and transforms_list[0].row_col_insert():
+                row_inserted = transforms_list[0].row_col_insert().matrix().matrix_row()
+                tmp_inserted = []
+                rows_inserted = 0
+                matrix_inserted = None
+
+                for r in row_inserted:
+                    tmp_inserted.append([])
+                    for expr in r.expr():
+                        tmp_inserted[rows_inserted].append(self.convert_expr(expr))
+                    rows_inserted = rows_inserted + 1
+
+                matrix_inserted = sympy.Matrix(tmp_inserted)
+                transform_atom = transforms_list[0].row_col_insert().transform_atom()
+                num = int(transform_atom.NUMBER().getText()) - 1
+                if transform_atom.LETTER_NO_E().getText() == 'r':
+                    # print("Insert one or more rows at the given row position")
+                    mat = mat.row_insert(num, matrix_inserted)
+                elif transform_atom.LETTER_NO_E().getText() == 'c':
+                    # print("Insert one or more columns at the given column position")
+                    mat = mat.col_insert(num, matrix_inserted)
+                else:
+                    raise Exception('Row and col don\'s match')
+            elif len(transforms_list) == 2 and transforms_list[0].row_col_del() and transforms_list[1].row_col_del():
+                # print(matrix.row_col_del_insert()[1].getText())
+                # print(matrix.row_col_del_insert()[1].row_col_del().transform_atom()[1].getText())
+                row_num = []
+                col_num = []
+                transform_atoms = transforms_list[1].row_col_del().transform_atom()
+                for transform_atom in transform_atoms:
+                    if transform_atom.LETTER_NO_E().getText() == 'r':
+                        num = int(transform_atom.NUMBER().getText()) - 1
+                        row_num.append(num)
+                    elif transform_atom.LETTER_NO_E().getText() == 'c':
+                        num = int(transform_atom.NUMBER().getText()) - 1
+                        col_num.append(num)
+                if len(row_num) > 0:
+                    row_num.sort(reverse=True)
+                    for row in row_num:
+                        try:
+                            mat.row_del(row)
+                        except Exception:
+                            raise Exception('Row and col don\'s match')
+                if len(col_num) > 0:
+                    col_num.sort(reverse=True)
+                    for col in col_num:
+                        try:
+                            mat.col_del(col)
+                        except Exception:
+                            raise Exception('Row and col don\'s match')
+                # print(matrix.row_col_del_insert()[0].getText())
+                # print(matrix.row_col_del_insert()[0].row_col_del().transform_atom()[1].getText())
+                row_num = []
+                col_num = []
+                transform_atoms = transforms_list[0].row_col_del().transform_atom()
+                for transform_atom in transform_atoms:
+                    if transform_atom.LETTER_NO_E().getText() == 'r':
+                        num = int(transform_atom.NUMBER().getText()) - 1
+                        row_num.append(num)
+                    elif transform_atom.LETTER_NO_E().getText() == 'c':
+                        num = int(transform_atom.NUMBER().getText()) - 1
+                        col_num.append(num)
+                if len(row_num) > 0:
+                    row_num.sort(reverse=True)
+                    for row in row_num:
+                        try:
+                            mat.row_del(row)
+                        except Exception:
+                            raise Exception('Row and col don\'s match')
+                if len(col_num) > 0:
+                    col_num.sort(reverse=True)
+                    for col in col_num:
+                        try:
+                            mat.col_del(col)
+                        except Exception:
+                            raise Exception('Row and col don\'s match')
+            elif len(transforms_list) == 2 and transforms_list[0].row_col_del() and transforms_list[1].row_col_insert():
+                row_inserted = transforms_list[1].row_col_insert().matrix().matrix_row()
+                tmp_inserted = []
+                rows_inserted = 0
+                matrix_inserted = None
+
+                for r in row_inserted:
+                    tmp_inserted.append([])
+                    for expr in r.expr():
+                        tmp_inserted[rows_inserted].append(self.convert_expr(expr))
+                    rows_inserted = rows_inserted + 1
+
+                matrix_inserted = sympy.Matrix(tmp_inserted)
+                transform_atom = transforms_list[0].row_col_insert().transform_atom()
+                num = int(transform_atom.NUMBER().getText()) - 1
+                if transform_atom.LETTER_NO_E().getText() == 'r':
+                    # print("Insert one or more rows at the given row position")
+                    mat = mat.row_insert(num, matrix_inserted)
+                elif transform_atom.LETTER_NO_E().getText() == 'c':
+                    # print("Insert one or more columns at the given column position")
+                    mat = mat.col_insert(num, matrix_inserted)
+                else:
+                    raise Exception('Row and col don\'s match')
+                # print(matrix.row_col_del_insert()[0].getText())
+                # print(matrix.row_col_del_insert()[0].row_col_del().transform_atom()[1].getText())
+                row_num = []
+                col_num = []
+                transform_atoms = transforms_list[0].row_col_del().transform_atom()
+                for transform_atom in transform_atoms:
+                    if transform_atom.LETTER_NO_E().getText() == 'r':
+                        num = int(transform_atom.NUMBER().getText()) - 1
+                        row_num.append(num)
+                    elif transform_atom.LETTER_NO_E().getText() == 'c':
+                        num = int(transform_atom.NUMBER().getText()) - 1
+                        col_num.append(num)
+                if len(row_num) > 0:
+                    row_num.sort(reverse=True)
+                    for row in row_num:
+                        try:
+                            mat.row_del(row)
+                        except Exception:
+                            raise Exception('Row and col don\'s match')
+                if len(col_num) > 0:
+                    col_num.sort(reverse=True)
+                    for col in col_num:
+                        try:
+                            mat.col_del(col)
+                        except Exception:
+                            raise Exception('Row and col don\'s match')
+            elif len(transforms_list) == 2 and transforms_list[0].row_col_insert() and transforms_list[1].row_col_del():
+                # print(matrix.row_col_del_insert()[1].getText())
+                # print(matrix.row_col_del_insert()[1].row_col_del().transform_atom()[1].getText())
+                row_num = []
+                col_num = []
+                transform_atoms = transforms_list[1].row_col_del().transform_atom()
+                for transform_atom in transform_atoms:
+                    if transform_atom.LETTER_NO_E().getText() == 'r':
+                        num = int(transform_atom.NUMBER().getText()) - 1
+                        row_num.append(num)
+                    elif transform_atom.LETTER_NO_E().getText() == 'c':
+                        num = int(transform_atom.NUMBER().getText()) - 1
+                        col_num.append(num)
+                if len(row_num) > 0:
+                    row_num.sort(reverse=True)
+                    for row in row_num:
+                        try:
+                            mat.row_del(row)
+                        except Exception:
+                            raise Exception('Row and col don\'s match')
+                if len(col_num) > 0:
+                    col_num.sort(reverse=True)
+                    for col in col_num:
+                        try:
+                            mat.col_del(col)
+                        except Exception:
+                            raise Exception('Row and col don\'s match')
+                row_inserted = transforms_list[0].row_col_insert().matrix().matrix_row()
+                tmp_inserted = []
+                rows_inserted = 0
+                matrix_inserted = None
+
+                for r in row_inserted:
+                    tmp_inserted.append([])
+                    for expr in r.expr():
+                        tmp_inserted[rows_inserted].append(self.convert_expr(expr))
+                    rows_inserted = rows_inserted + 1
+
+                matrix_inserted = sympy.Matrix(tmp_inserted)
+                transform_atom = transforms_list[0].row_col_insert().transform_atom()
+                num = int(transform_atom.NUMBER().getText()) - 1
+                if transform_atom.LETTER_NO_E().getText() == 'r':
+                    # print("Insert one or more rows at the given row position")
+                    mat = mat.row_insert(num, matrix_inserted)
+                elif transform_atom.LETTER_NO_E().getText() == 'c':
+                    # print("Insert one or more columns at the given column position")
+                    mat = mat.col_insert(num, matrix_inserted)
+                else:
+                    raise Exception('Row and col don\'s match')
+            elif len(transforms_list) == 2 and transforms_list[0].row_col_insert() and transforms_list[1].row_col_insert():
+                row_inserted = transforms_list[1].row_col_insert().matrix().matrix_row()
+                tmp_inserted = []
+                rows_inserted = 0
+                matrix_inserted = None
+
+                for r in row_inserted:
+                    tmp_inserted.append([])
+                    for expr in r.expr():
+                        tmp_inserted[rows_inserted].append(self.convert_expr(expr))
+                    rows_inserted = rows_inserted + 1
+
+                matrix_inserted = sympy.Matrix(tmp_inserted)
+                transform_atom = transforms_list[0].row_col_insert().transform_atom()
+                num = int(transform_atom.NUMBER().getText()) - 1
+                if transform_atom.LETTER_NO_E().getText() == 'r':
+                    # print("Insert one or more rows at the given row position")
+                    mat = mat.row_insert(num, matrix_inserted)
+                elif transform_atom.LETTER_NO_E().getText() == 'c':
+                    # print("Insert one or more columns at the given column position")
+                    mat = mat.col_insert(num, matrix_inserted)
+                else:
+                    raise Exception('Row and col don\'s match')
+                row_inserted = transforms_list[0].row_col_insert().matrix().matrix_row()
+                tmp_inserted = []
+                rows_inserted = 0
+                matrix_inserted = None
+
+                for r in row_inserted:
+                    tmp_inserted.append([])
+                    for expr in r.expr():
+                        tmp_inserted[rows_inserted].append(self.convert_expr(expr))
+                    rows_inserted = rows_inserted + 1
+
+                matrix_inserted = sympy.Matrix(tmp_inserted)
+                transform_atom = transforms_list[0].row_col_insert().transform_atom()
+                num = int(transform_atom.NUMBER().getText()) - 1
+                if transform_atom.LETTER_NO_E().getText() == 'r':
+                    # print("Insert one or more rows at the given row position")
+                    mat = mat.row_insert(num, matrix_inserted)
+                elif transform_atom.LETTER_NO_E().getText() == 'c':
+                    # print("Insert one or more columns at the given column position")
+                    mat = mat.col_insert(num, matrix_inserted)
+                else:
+                    raise Exception('Row and col don\'s match')
+
+        if hasattr(matrix, 'UNDERSCORE') and matrix.UNDERSCORE():
+            if matrix.extract_submatrix():
+                row_col_list = matrix.extract_submatrix()
+            elif matrix.extract_entry():
+                row_col_list = matrix.extract_entry()
+            row_list = []
+            col_list = []
+            if len(row_col_list) == 2:
+                for row in row_col_list[0].getText().split(","):
+                    row_list.append(int(row)-1)
+                for col in row_col_list[1].getText().split(","):
+                    col_list.append(int(col)-1)
+            mat = mat.extract(row_list, col_list)
 
         return mat
 
@@ -756,7 +1018,8 @@ class _Latex2Sympy:
         elif isinstance(res, list) and len(res) == 1:  # must be derivative
             wrt = res[0]
             if i == len(arr) - 1:
-                raise Exception("Expected expression for derivative")
+                return res
+                # raise Exception("Expected expression for derivative")
             else:
                 expr = self.convert_postfix_list(arr, i + 1)
                 return sympy.Derivative(expr, wrt)
@@ -811,6 +1074,24 @@ class _Latex2Sympy:
                 except Exception:
                     try:
                         exp = sympy.transpose(exp)
+                    except Exception:
+                        pass
+                    pass
+            elif op.ConjugateTranspose():
+                try:
+                    exp = exp.H
+                except Exception:
+                    try:
+                        exp = sympy.adjoint(exp)
+                    except Exception:
+                        pass
+                    pass
+            elif op.conjugate():
+                try:
+                    exp = exp.C
+                except Exception:
+                    try:
+                        exp = sympy.conjugate(exp)
                     except Exception:
                         pass
                     pass
@@ -1142,6 +1423,18 @@ class _Latex2Sympy:
                     expr = arg.nullspace()
                 elif operatorname == 'norm':
                     expr = arg.norm()
+                elif operatorname == 'normi':
+                    expr = arg.norm(1)
+                elif operatorname == 'normii':
+                    expr = arg.norm(2)
+                elif operatorname == 'normoo':
+                    expr = arg.norm(oo)
+                elif operatorname == 'norm-i':
+                    expr = arg.norm(-1)
+                elif operatorname == 'norm-ii':
+                    expr = arg.norm(-2)
+                elif operatorname == 'norm-oo':
+                    expr = arg.norm(-oo)
                 elif operatorname == 'cols':
                     expr = [arg.col(i) for i in range(arg.cols)]
                 elif operatorname == 'rows':
@@ -1154,6 +1447,52 @@ class _Latex2Sympy:
                     expr = arg.eigenvects()
                 elif operatorname in ['svd', 'SVD']:
                     expr = arg.singular_value_decomposition()
+                elif operatorname in ['sv', 'SV']:
+                    expr = arg.singular_values()
+                elif operatorname in ['qr', 'QR']:
+                    expr = arg.QRdecomposition()
+                elif operatorname in ['rankdecomposition', 'RANKDECOMPOSITION']:
+                    expr = arg.rank_decomposition()                    
+                elif operatorname in ['lu', 'LU']:
+                    expr = arg.LUdecomposition()                    
+                elif operatorname in ['luff', 'LUFF']:
+                    expr = arg.LUdecompositionFF()                    
+                elif operatorname in ['jf', 'JF']:
+                    expr = arg.jordan_form()                    
+                elif operatorname in ['cholesky', 'CHOLESKY']:
+                    expr = arg.cholesky()                    
+                elif operatorname in ['echelonform', 'ECHELONFORM']:
+                    expr = arg.echelon_form()                    
+                elif operatorname in ['pd', 'PD']:
+                    expr = arg.is_positive_definite                    
+                elif operatorname in ['psd', 'PSD']:
+                    expr = arg.is_positive_semidefinite                    
+                elif operatorname in ['nd', 'ND']:
+                    expr = arg.is_negative_definite                    
+                elif operatorname in ['nsd', 'NSD']:
+                    expr = arg.is_negative_semidefinite                    
+                elif operatorname in ['ind', 'IND']:
+                    expr = arg.is_indefinite                    
+                elif operatorname in ['isef', 'ISEF']:
+                    expr = arg.is_echelon                   
+                elif operatorname in ['isnilpotent', 'ISNILPOTENT']:
+                    expr = arg.is_nilpotent()                    
+                elif operatorname in ['isdiagonalizable', 'ISDIAGONALIZABLE']:
+                    expr = arg.is_diagonalizable()
+                elif operatorname in ['ishermitian', 'ISHERMITIAN']:
+                    expr = arg.is_hermitian
+                elif operatorname in ['issymmetric', 'ISSYMMETRIC']:
+                    expr = arg.is_symmetric()
+                elif operatorname in ['issquare', 'ISSQUARE']:
+                    expr = arg.is_square
+                elif operatorname in ['islower', 'ISLOWER']:
+                    expr = arg.is_lower
+                elif operatorname in ['isupper', 'ISUPPER']:
+                    expr = arg.is_upper
+                elif operatorname in ['getdiagblocks', 'GETDIAGBLOCKS']:
+                    expr = arg.get_diag_blocks()
+                elif operatorname in ['pinv', 'PINV']:
+                    expr = arg.pinv()
                 else:
                     expr = sympy.Function(operatorname)(arg, evaluate=False)
             elif name in ["log", "ln"]:
@@ -1213,8 +1552,12 @@ class _Latex2Sympy:
                     expr = self.handle_gcd_lcm(operatorname, args)
                 elif operatorname == 'zeros':
                     expr = sympy.zeros(*args)
+                elif operatorname == 'series':
+                    expr = sympy.series(*args)
                 elif operatorname == 'ones':
                     expr = sympy.ones(*args)
+                elif operatorname in ['jb', 'JB']:
+                    expr = sympy.Matrix.jordan_block(*args)
                 elif operatorname == 'diag':
                     expr = sympy.diag(*args)
                 elif operatorname == 'hstack':
@@ -1446,7 +1789,8 @@ def latex2latex(latex_str: str, variable_values: dict | None = None, is_real=Non
         if converter.var:
             parsed_math = parsed_math.subs(converter.var)
         # 然后进行简化和计算
-        parsed_math = simplify(parsed_math.doit().doit())
+        if not isinstance(parsed_math, bool):
+            parsed_math = simplify(parsed_math.doit().doit())
         return converter.sympy2latex(parsed_math) 
 
 
@@ -1458,29 +1802,43 @@ def latex2sympy(latex_str: str, variable_values: dict | None = None, is_real=Non
     if normalization_config is not None:
         latex_str = normalize_latex(latex_str, normalization_config)
     parsed_math = converter.parse(latex_str)
-    # 首先进行变量代换
-    if converter.var:
-        parsed_math = parsed_math.subs(converter.var)
-    # 然后进行简化和计算
-    parsed_math = simplify(parsed_math.doit().doit())
-    return parsed_math
+    if isinstance(parsed_math, list) or isinstance(parsed_math, tuple) or isinstance(parsed_math, dict):
+        return [converter.sympy2latex(tex) for tex in parsed_math]
+    else:
+        # 首先进行变量代换
+        if converter.var:
+            parsed_math = parsed_math.subs(converter.var)
+        # 然后进行简化和计算
+        if not isinstance(parsed_math, bool):
+            parsed_math = simplify(parsed_math.doit().doit())
+        return parsed_math
 
 
 if __name__ == "__main__":
     # print(normalize_latex("20 \\%", NormalizationConfig(basic_latex=True, units=True, malformed_operators=False, nits=True, boxed=False, equations=True)))
-    print(latex2sympy(r"\boxed{\text{C,  E}}"))
-    print(latex2sympy(r"0.111"))
-    print(latex2sympy(r"x+1", {"x": latex2sympy(r"y_1+3^2-\sqrt{2}i")}))
-    print(latex2latex(r"x+1", {"x": latex2sympy(r"y_1+3^2-\sqrt{2}i")}))
-    converter = _Latex2Sympy(is_real=False, convert_degrees=False)
-    converter.var = {"x":"1", "y":"2", "z":"3"}
-    print(latex2latex(r"x+1-Y", variable_values=converter.var))
-    print(latex2latex(r"x+1-Y", variable_values=converter.var, conversion_config=ConversionConfig(lowercase_symbols=True)))
-    print(latex2latex(r"x+1-Y", variable_values=converter.var, conversion_config=ConversionConfig(lowercase_symbols=False)))
-    print(latex2sympy(r"x+1-Y", variable_values=converter.var))
-    print(latex2sympy(r"x+1-Y", variable_values=converter.var, conversion_config=ConversionConfig(lowercase_symbols=True)))
-    print(latex2sympy(r"x+1-Y", variable_values=converter.var, conversion_config=ConversionConfig(lowercase_symbols=False)))
-    print(latex2latex(r"B_{i}", variable_values=converter.var, conversion_config=ConversionConfig(lowercase_symbols=False)))
-    print(latex2latex(r"B_{i}", variable_values=converter.var, conversion_config=ConversionConfig(lowercase_symbols=True)))
-    print(latex2sympy(r"B_{i}", variable_values=converter.var, conversion_config=ConversionConfig(lowercase_symbols=False)))
-    print(latex2sympy(r"B_{i}", variable_values=converter.var, conversion_config=ConversionConfig(lowercase_symbols=True)))
+    # print(latex2sympy(r"\boxed{\text{C,  E}}"))
+    # print(latex2sympy(r"0.111"))
+    # print(latex2sympy(r"x+1", {"x": latex2sympy(r"y_1+3^2-\sqrt{2}i")}))
+    # print(latex2latex(r"x+1", {"x": latex2sympy(r"y_1+3^2-\sqrt{2}i")}))
+    # print(latex2latex(r"\begin{pmatrix}3&0&2\\0&1&\pi\end{pmatrix}_{[1,2],[1,3]}"))
+    # print(latex2latex(r"\begin{pmatrix}3&0&2\\0&1&\pi\end{pmatrix}_{1,2}"))
+    print("\033[35m", latex2latex(r"\begin{pmatrix}3&0&2\\0&1&\pi\end{pmatrix}\xrightarrow{\text{DEL}\;r_{1},r_{2}}"), "\033[0m")
+    # print("\033[33m", latex2latex(r"\begin{pmatrix}3&0&2\\0&1&\pi\end{pmatrix}\xrightarrow[\text{DEL}~~c_{1}]{\text{DEL}~~r_{1}}"), "\033[0m")
+    # print("\033[35m", latex2latex(r"\begin{pmatrix}3&0&2\\0&1&\pi\end{pmatrix}\xrightarrow{\text{INSERT}~~r_{1},\begin{pmatrix}0&0&0\end{pmatrix}}"), "\033[0m")
+    # print(latex2latex(r"\operatorname{nullspace}(\begin{matrix}1&3&0\\-2&-6&0\\3&9&6\end{matrix})"))
+    # print(latex2latex(r"\operatorname{series}(\sin{x}, x, 2, 6)"))
+    # print(latex2latex(r"\frac{d}{dx}(\begin{pmatrix}3x&0&2\\0&x&\pi\end{pmatrix})"))
+    # print(latex2latex(r"\operatorname{pinv}\begin{pmatrix}3x&0&2\\0&x&\pi\end{pmatrix}"))
+    # converter = _Latex2Sympy(is_real=False, convert_degrees=False)
+    # converter.var = {"x":"1", "y":"2", "z":"3"}
+    # print(latex2latex(r"x+1-Y", variable_values=converter.var))
+    # print(latex2latex(r"x+1-Y", variable_values=converter.var, conversion_config=ConversionConfig(lowercase_symbols=True)))
+    # print(latex2latex(r"x+1-Y", variable_values=converter.var, conversion_config=ConversionConfig(lowercase_symbols=False)))
+    # print(latex2sympy(r"x+1-Y", variable_values=converter.var))
+    # print(latex2sympy(r"x+1-Y", variable_values=converter.var, conversion_config=ConversionConfig(lowercase_symbols=True)))
+    # print(latex2sympy(r"x+1-Y", variable_values=converter.var, conversion_config=ConversionConfig(lowercase_symbols=False)))
+    # print(latex2latex(r"B_{i}", variable_values=converter.var, conversion_config=ConversionConfig(lowercase_symbols=False)))
+    # print(latex2latex(r"B_{i}", variable_values=converter.var, conversion_config=ConversionConfig(lowercase_symbols=True)))
+    # print(latex2sympy(r"B_{i}", variable_values=converter.var, conversion_config=ConversionConfig(lowercase_symbols=False)))
+    # print(latex2sympy(r"B_{i}", variable_values=converter.var, conversion_config=ConversionConfig(lowercase_symbols=True)))
+    # print(sympy_latex(Matrix([[ 1,  3, 0],[-2, -6, 0],[ 3,  9, 6]])))
