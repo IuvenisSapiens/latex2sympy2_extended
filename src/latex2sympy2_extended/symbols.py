@@ -148,6 +148,7 @@ GREEK_LETTER_MAP = {
 
 sympy_singleton_map = {
     'pi': sympy.S.Pi,
+    '虚数单位': sympy.S.ImaginaryUnit,
 }
 
 def get_symbol(latex_str: str, is_real: bool | None = True, lowercase_symbols: bool = False):

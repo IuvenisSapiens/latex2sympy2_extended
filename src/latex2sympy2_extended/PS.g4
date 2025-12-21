@@ -349,7 +349,8 @@ fragment OTHER_SYMBOL:
     '\\Re'  |
     '\\natural'  |
     '\\surd'  |
-    '\\circledS';
+    '\\circledS'|
+    '虚数单位';
 OTHER_SYMBOL_CMD: OTHER_SYMBOL [ ]?;
 
 fragment INFTY_CMD: '\\infty';

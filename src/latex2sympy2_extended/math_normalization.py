@@ -470,6 +470,7 @@ def normalize_latex(text: str, config: NormalizationConfig) -> str:
     if config.basic_latex:
         # Basic latex command replacements
         text = text.replace(r'\mathrm{T}', 'T')
+        text = text.replace(r'\mathrm{i}', '虚数单位')
         text = text.replace(r'\limits', '')
         text = text.replace(r'\mathrm{d}', 'd').replace(r'{\rm d}', 'd')
         text = text.replace(r'\left[\begin{matrix}', r'\begin{bmatrix}').replace(r'\end{matrix}\right]', r'\end{bmatrix}')
