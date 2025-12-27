@@ -819,7 +819,7 @@ class _Latex2Sympy:
                     row_list.append(int(row)-1)
                 for col in row_col_list[1].getText().split(","):
                     col_list.append(int(col)-1)
-            mat = mat.extract(row_list, col_list)
+            mat = mat.extract(row_list, col_list) if matrix.extract_submatrix() else mat[row_list[0], col_list[0]]
 
         return mat
 
@@ -1782,8 +1782,21 @@ def latex2latex(latex_str: str, variable_values: dict | None = None, is_real=Non
     if normalization_config is not None:
         latex_str = normalize_latex(latex_str, normalization_config)
     parsed_math = converter.parse(latex_str)
-    if isinstance(parsed_math, list) or isinstance(parsed_math, tuple) or isinstance(parsed_math, dict):
+    if isinstance(parsed_math, list) or isinstance(parsed_math, tuple):
         return [converter.sympy2latex(tex) for tex in parsed_math]
+    elif isinstance(parsed_math, dict):
+        # 手动构建格式化的输出字符串
+        output = "\\left\\{"
+        for key, value in parsed_math.items():
+            # 处理键和值的转义
+            key_str = converter.sympy2latex(key)
+            value_str = converter.sympy2latex(value)
+            output += f"{key_str}: {value_str}, "
+        # 去掉最后一个多余的逗号和空格，并添加右括号
+        output = output.rstrip(", ") + "\\right\\}"
+
+        # 返回格式化的字符串
+        return output
     else:
         # 首先进行变量代换
         if converter.var:
@@ -1802,8 +1815,21 @@ def latex2sympy(latex_str: str, variable_values: dict | None = None, is_real=Non
     if normalization_config is not None:
         latex_str = normalize_latex(latex_str, normalization_config)
     parsed_math = converter.parse(latex_str)
-    if isinstance(parsed_math, list) or isinstance(parsed_math, tuple) or isinstance(parsed_math, dict):
+    if isinstance(parsed_math, list) or isinstance(parsed_math, tuple):
         return [converter.sympy2latex(tex) for tex in parsed_math]
+    elif isinstance(parsed_math, dict):
+        # 手动构建格式化的输出字符串
+        output = "\\left\\{"
+        for key, value in parsed_math.items():
+            # 处理键和值的转义
+            key_str = converter.sympy2latex(key)
+            value_str = converter.sympy2latex(value)
+            output += f"{key_str}: {value_str}, "
+        # 去掉最后一个多余的逗号和空格，并添加右括号
+        output = output.rstrip(", ") + "\\right\\}"
+
+        # 返回格式化的字符串
+        return output
     else:
         # 首先进行变量代换
         if converter.var:
@@ -1823,6 +1849,8 @@ if __name__ == "__main__":
     # print(latex2latex(r"\begin{pmatrix}3&0&2\\0&1&\pi\end{pmatrix}_{[1,2],[1,3]}"))
     # print(latex2latex(r"\begin{pmatrix}3&0&2\\0&1&\pi\end{pmatrix}_{1,2}"))
     print("\033[35m", latex2latex(r"\begin{pmatrix}3&0&2\\0&1&\pi\end{pmatrix}\xrightarrow{\text{DEL}\;r_{1},r_{2}}"), "\033[0m")
+    print("\033[35m", latex2latex(r"\operatorname{eigenvalues}\begin{pmatrix}\pi&0\\0&1\end{pmatrix}"), "\033[0m")
+    print("\033[35m", latex2latex(r"\operatorname{eigenvectors}\begin{pmatrix}\pi&0\\0&1\end{pmatrix}"), "\033[0m")
     # print("\033[33m", latex2latex(r"\begin{pmatrix}3&0&2\\0&1&\pi\end{pmatrix}\xrightarrow[\text{DEL}~~c_{1}]{\text{DEL}~~r_{1}}"), "\033[0m")
     # print("\033[35m", latex2latex(r"\begin{pmatrix}3&0&2\\0&1&\pi\end{pmatrix}\xrightarrow{\text{INSERT}~~r_{1},\begin{pmatrix}0&0&0\end{pmatrix}}"), "\033[0m")
     # print(latex2latex(r"\operatorname{nullspace}(\begin{matrix}1&3&0\\-2&-6&0\\3&9&6\end{matrix})"))
