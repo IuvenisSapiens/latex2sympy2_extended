@@ -199,6 +199,7 @@ MATRIX_TYPE_MATRIX: 'matrix';
 MATRIX_TYPE_PMATRIX: 'pmatrix';
 MATRIX_TYPE_BMATRIX: 'bmatrix';
 MATRIX_TYPE_DET: 'vmatrix';
+MATRIX_TYPE_NORM: 'Vmatrix';
 MATRIX_TYPES: MATRIX_TYPE_MATRIX | MATRIX_TYPE_PMATRIX | MATRIX_TYPE_BMATRIX;
 CMD_MATRIX_START: '\\begin' L_BRACE MATRIX_TYPES R_BRACE;
 CMD_MATRIX_END: '\\end' L_BRACE MATRIX_TYPES R_BRACE;
@@ -208,6 +209,9 @@ CMD_ARRAY_END: '\\end' L_BRACE 'array' R_BRACE;
 
 CMD_DET_START: '\\begin' L_BRACE MATRIX_TYPE_DET R_BRACE;
 CMD_DET_END: '\\end' L_BRACE MATRIX_TYPE_DET R_BRACE;
+
+CMD_NORM_START: '\\begin' L_BRACE MATRIX_TYPE_NORM R_BRACE;
+CMD_NORM_END: '\\end' L_BRACE MATRIX_TYPE_NORM R_BRACE;
 MATRIX_DEL_COL: '&';
 MATRIX_DEL_ROW: '\\\\';
 
@@ -227,7 +231,7 @@ LETTER_NO_E: [a-df-zA-DF-Z]; // exclude e for exponential function and e notatio
 fragment LETTER: [a-zA-Z];
 fragment DIGIT: [0-9];
 
-MATRIX_XRIGHTARROW: '\\xrightarrow' | '\\xRightarrow';
+MATRIX_XRIGHTARROW: '\\xrightarrow' | '\\xRightarrow' | '\\xlongequal';
 TRANSFORM_EXCHANGE: '<->' | '<=>' | '\\leftrightarrow' | '\\Leftrightarrow';
 
 // There is ofc huge issue with the fact that we can't distinguish between numbers and sets
@@ -469,6 +473,13 @@ det:
     matrix_row (MATRIX_DEL_ROW matrix_row)* MATRIX_DEL_ROW?
     CMD_DET_END;
 
+norm_atom:
+    CMD_NORM_START
+    matrix_row (MATRIX_DEL_ROW matrix_row)* MATRIX_DEL_ROW?
+    CMD_NORM_END;
+
+norm: norm_atom (UNDERSCORE L_BRACE expr R_BRACE)?;
+
 matrix_row:
     expr (MATRIX_DEL_COL expr)*;
 
@@ -540,6 +551,7 @@ comp:
     | frac
     | binom
     | matrix
+    | norm
     | det;
 
 comp_nofunc:
@@ -554,6 +566,7 @@ comp_nofunc:
     | frac
     | binom
     | matrix
+    | norm
     | det;
 
 group:

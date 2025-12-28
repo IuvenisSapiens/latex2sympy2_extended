@@ -1152,6 +1152,21 @@ class _Latex2Sympy:
         elif comp.det():
             # !Use Global variances
             return self.convert_matrix(comp.det()).subs(self.variances).det()
+        elif comp.norm():
+            # !Use Global variances
+            if comp.norm().expr():
+                match comp.norm().expr().getText():
+                    case "\\infty":
+                        value = oo
+                    case "-\\infty":
+                        value = -oo
+                    case "F" | "m_2" | "m_{2}":
+                        return self.convert_matrix(comp.norm().norm_atom()).subs(self.variances).norm()
+                    case _:
+                        value = self.convert_expr(comp.norm().expr())     
+                return self.convert_matrix(comp.norm().norm_atom()).subs(self.variances).norm(value)
+            else:
+                return self.convert_matrix(comp.norm().norm_atom()).subs(self.variances).norm()
         elif comp.func():
             return self.convert_func(comp.func())
 
@@ -1849,6 +1864,15 @@ if __name__ == "__main__":
     # print(latex2latex(r"\begin{pmatrix}3&0&2\\0&1&\pi\end{pmatrix}_{[1,2],[1,3]}"))
     # print(latex2latex(r"\begin{pmatrix}3&0&2\\0&1&\pi\end{pmatrix}_{1,2}"))
     print("\033[35m", latex2latex(r"\begin{pmatrix}3&0&2\\0&1&\pi\end{pmatrix}\xrightarrow{\text{DEL}\;r_{1},r_{2}}"), "\033[0m")
+    print("\033[35m", latex2latex(r"\begin{Vmatrix}\pi&0\\0&2\end{Vmatrix}_{1}"), "\033[0m")
+    print("\033[35m", latex2latex(r"\begin{Vmatrix}\pi&0\\0&2\end{Vmatrix}_{2}"), "\033[0m")
+    print("\033[35m", latex2latex(r"\begin{Vmatrix}\pi&0\\0&2\end{Vmatrix}_{\infty}"), "\033[0m")
+    # print("\033[35m", latex2latex(r"\begin{Vmatrix}\pi&0\\0&2\end{Vmatrix}_{-\infty}"), "\033[0m")
+    print("\033[35m", latex2latex(r"\begin{Vmatrix}\pi&0\\0&2\end{Vmatrix}_{F}"), "\033[0m")
+    print("\033[35m", latex2latex(r"\begin{Vmatrix}\pi&0\\0&2\end{Vmatrix}_{m_2}"), "\033[0m")
+    print("\033[35m", latex2latex(r"\begin{Vmatrix}\pi&0\\0&2\end{Vmatrix}_{m_{2}}"), "\033[0m")
+    print("\033[35m", latex2latex(r"\begin{Vmatrix}\pi&0\\0&2\end{Vmatrix}"), "\033[0m")
+    print("\033[35m", latex2latex(r"\begin{vmatrix}\pi&0\\0&2\end{vmatrix}"), "\033[0m")
     print("\033[35m", latex2latex(r"\operatorname{eigenvalues}\begin{pmatrix}\pi&0\\0&1\end{pmatrix}"), "\033[0m")
     print("\033[35m", latex2latex(r"\operatorname{eigenvectors}\begin{pmatrix}\pi&0\\0&1\end{pmatrix}"), "\033[0m")
     # print("\033[33m", latex2latex(r"\begin{pmatrix}3&0&2\\0&1&\pi\end{pmatrix}\xrightarrow[\text{DEL}~~c_{1}]{\text{DEL}~~r_{1}}"), "\033[0m")
