@@ -84,7 +84,7 @@ class _Latex2Sympy:
         parser.removeErrorListeners()
         parser.addErrorListener(self.MathErrorListener(latex_str))
         return parser
-    
+
     def parse(self, latex_str: str):
         """Main entry point to parse latex string"""
         # setup listener
@@ -96,7 +96,7 @@ class _Latex2Sympy:
         # if set relation
         if math.set_relation():
             return self.convert_set_relation(math.set_relation())
-        
+
         if math.set_elements():
             # The issue with 333,333 or 3,333 is that it makess sets and numbers with commas ambigous
             # is that 333333 or {333,333}?
@@ -106,7 +106,7 @@ class _Latex2Sympy:
             if comma_number_regex.match(latex_str):
                 return convert_number(latex_str)
             return self.convert_set_elements(math.set_elements())
-        
+
         if math.set_elements_relation():
             return self.convert_set_elements_relation(math.set_elements_relation())
 
@@ -141,7 +141,7 @@ class _Latex2Sympy:
     def convert_relation(self, rel):
         if rel.expr():
             return self.convert_expr(rel.expr())
-        
+
         lh = self.convert_relation(rel.relation(0))
         rh = self.convert_relation(rel.relation(1))
 
@@ -221,7 +221,6 @@ class _Latex2Sympy:
             elif isinstance(lh, Relational):
                 return And(lh, sympy.Ne(lh.rhs, rh, evaluate=False))
             return sympy.Ne(lh, rh, evaluate=False)
-
 
     def convert_set_relation(self, expr):
         if expr.atom_expr_list():
@@ -309,7 +308,6 @@ class _Latex2Sympy:
         semicolon_elements = self.convert_semicolon_elements(expr.semicolon_elements())
         return self.convert_elements_to_set_or_tuple(semicolon_elements)
 
-
     def convert_set_minus(self, expr):
         if expr.union_expr():
             return self.convert_set_union(expr.union_expr())
@@ -324,7 +322,7 @@ class _Latex2Sympy:
 
         left = self.convert_set_union(expr.union_expr()[0])
         right = self.convert_set_union(expr.union_expr()[1])
-        
+
         # It's hard to know what the user meant, but clearly we cant do intersection with tuple
         if isinstance(left, sympy.Tuple):
             left = FiniteSet(*left)
@@ -348,7 +346,6 @@ class _Latex2Sympy:
             right = FiniteSet(*right)
 
         return sympy.Intersection(left, right, evaluate=False)
-
 
     def convert_set_group(self, expr):
         if expr.set_atom():
@@ -421,8 +418,6 @@ class _Latex2Sympy:
             return -expr
         return sympy.Mul(-1, expr, evaluate=False)
 
-
-
     def convert_element(self, element):
         if element.plus_minus_expr():
             pm = element.plus_minus_expr()
@@ -434,7 +429,7 @@ class _Latex2Sympy:
             return [sympy.Add(left, right, evaluate=False), sympy.Add(left, self.as_unary_minus(right), evaluate=False)]
         elif element.set_atom():
             return [self.convert_set_atom(element.set_atom())]
-        
+
         elif hasattr(element, 'relation') and element.relation():
             return [self.convert_relation(element.relation())]
 
@@ -442,7 +437,6 @@ class _Latex2Sympy:
             return [self.convert_expr(element.expr())]
         else:
             raise Exception('Unrecognized comma element')
-    
 
         # Fallback because for some reason finites set with paren parses sometimes first
         # instead of interval
@@ -463,11 +457,9 @@ class _Latex2Sympy:
             return sympy.S.EmptySet
         raise Exception('Unrecognized literal set')
 
-
     def convert_expr(self, expr):
         if expr.additive():
             return self.convert_add(expr.additive())
-
 
     def convert_elementary_transform(self, matrix, transform):
         if transform.transform_scale():
@@ -529,7 +521,6 @@ class _Latex2Sympy:
                 raise Exception('Row and col don\'s match')
 
         return matrix
-
 
     def convert_matrix(self, matrix):
         # build matrix
@@ -823,7 +814,6 @@ class _Latex2Sympy:
 
         return mat
 
-
     def add_flat(self, lh, rh):
         if hasattr(lh, 'is_Add') and lh.is_Add or hasattr(rh, 'is_Add') and rh.is_Add:
             args = []
@@ -838,7 +828,6 @@ class _Latex2Sympy:
             return sympy.Add(*args, evaluate=False)
         else:
             return sympy.Add(lh, rh, evaluate=False)
-
 
     def mat_add_flat(self, lh, rh):
         if hasattr(lh, 'is_MatAdd') and lh.is_MatAdd or hasattr(rh, 'is_MatAdd') and rh.is_MatAdd:
@@ -856,7 +845,6 @@ class _Latex2Sympy:
         else:
             return sympy.MatAdd(lh, rh, evaluate=False)
 
-
     def mul_flat(self, lh, rh):
         if hasattr(lh, 'is_Mul') and lh.is_Mul or hasattr(rh, 'is_Mul') and rh.is_Mul:
             args = []
@@ -871,7 +859,6 @@ class _Latex2Sympy:
             return sympy.Mul(*args, evaluate=False)
         else:
             return sympy.Mul(lh, rh, evaluate=False)
-
 
     def mat_mul_flat(self, lh, rh):
         if hasattr(lh, 'is_MatMul') and lh.is_MatMul or hasattr(rh, 'is_MatMul') and rh.is_MatMul:
@@ -892,7 +879,6 @@ class _Latex2Sympy:
             # if hasattr(rh, 'is_Matrix'):
             #     rh = rh.doit()
             return sympy.MatMul(lh, rh, evaluate=False)
-
 
     def convert_add(self, add):
         if add.ADD():
@@ -920,7 +906,6 @@ class _Latex2Sympy:
         else:
             return self.convert_mp(add.mp())
 
-
     def convert_mp(self, mp):
         if hasattr(mp, 'mp'):
             mp_left = mp.mp(0)
@@ -942,7 +927,7 @@ class _Latex2Sympy:
             rh = self.convert_mp(mp_right)
             if (hasattr(lh, 'is_Matrix') and lh.is_Matrix) or (hasattr(rh, 'is_Matrix') and rh.is_Matrix):
                 return sympy.MatMul(lh, sympy.Pow(rh, -1, evaluate=False), evaluate=False)
-            
+
             # If both are numbers, we convert to sympy.Rational
             elif hasattr(lh, 'is_Integer') and lh.is_Integer and hasattr(rh, 'is_Integer') and rh.is_Integer:
                 return sympy.Rational(lh, rh)
@@ -960,7 +945,6 @@ class _Latex2Sympy:
                 return self.convert_unary(mp.unary())
             else:
                 return self.convert_unary(mp.unary_nofunc())
-
 
     def convert_unary(self, unary):
         if hasattr(unary, 'unary'):
@@ -983,14 +967,13 @@ class _Latex2Sympy:
             else:
                 if (hasattr(tmp_convert_nested_unary, 'func') and tmp_convert_nested_unary.func.is_Number):
                     return -tmp_convert_nested_unary
-                
+
                 elif hasattr(tmp_convert_nested_unary, 'is_Number') and tmp_convert_nested_unary.is_Number:
                     return -tmp_convert_nested_unary
                 else:
                     return self.mul_flat(-1, tmp_convert_nested_unary)
         elif postfix:
             return self.convert_postfix_list(postfix)
-
 
     def convert_postfix_list(self, arr, i=0):
         if i >= len(arr):
@@ -1023,9 +1006,8 @@ class _Latex2Sympy:
             else:
                 expr = self.convert_postfix_list(arr, i + 1)
                 return sympy.Derivative(expr, wrt)
-        
-        return res
 
+        return res
 
     def do_subs(self, expr, at):
         if at.expr():
@@ -1040,7 +1022,6 @@ class _Latex2Sympy:
             lh = self.convert_expr(at.equality().expr(0))
             rh = self.convert_expr(at.equality().expr(1))
             return expr.subs(lh, rh)
-
 
     def convert_postfix(self, postfix):
         if hasattr(postfix, 'exp'):
@@ -1103,7 +1084,6 @@ class _Latex2Sympy:
 
         return exp
 
-
     def convert_exp(self, exp):
         if hasattr(exp, 'exp'):
             exp_nested = exp.exp()
@@ -1126,7 +1106,6 @@ class _Latex2Sympy:
                 return self.convert_comp(exp.comp())
             else:
                 return self.convert_comp(exp.comp_nofunc())
-
 
     def convert_comp(self, comp):
         if comp.group():
@@ -1170,7 +1149,6 @@ class _Latex2Sympy:
         elif comp.func():
             return self.convert_func(comp.func())
 
-
     def convert_atom_expr(self, atom_expr):
         # find the atom's text
         atom_text = ''
@@ -1202,7 +1180,7 @@ class _Latex2Sympy:
                 accent_text = accent_text.replace("(", "").replace(")", "")
             elif "math" in accent_name:
                 accent_name = "math"
-            
+
             if accent_name:
                 atom_text = f"{accent_name}{{{accent_text}}}"
             else:
@@ -1317,7 +1295,6 @@ class _Latex2Sympy:
                 text = text[1:]
         return sympy.Number(text)
 
-
     def rule2text(self, ctx):
         stream = ctx.start.getInputStream()
         # starting index of starting token
@@ -1326,7 +1303,6 @@ class _Latex2Sympy:
         stopIdx = ctx.stop.stop
 
         return stream.getText(startIdx, stopIdx)
-
 
     def convert_frac(self, frac):
         diff_op = False
@@ -1371,18 +1347,16 @@ class _Latex2Sympy:
         expr_bot = self.convert_expr(frac.lower)
         if hasattr(expr_top, 'is_Matrix') and expr_top.is_Matrix or hasattr(expr_bot, 'is_Matrix') and expr_bot.is_Matrix:
             return sympy.MatMul(expr_top, sympy.Pow(expr_bot, -1, evaluate=False), evaluate=False)
-        
+
         elif hasattr(expr_top, 'is_Integer') and expr_top.is_Integer and hasattr(expr_bot, 'is_Integer') and expr_bot.is_Integer:
             return sympy.Rational(expr_top, expr_bot)
         else:
             return sympy.Mul(expr_top, sympy.Pow(expr_bot, -1, evaluate=False), evaluate=False)
 
-
     def convert_binom(self, binom):
         expr_top = self.convert_expr(binom.upper)
         expr_bot = self.convert_expr(binom.lower)
         return sympy.binomial(expr_top, expr_bot)
-
 
     def convert_func(self, func):
         if func.func_normal_single_arg():
@@ -1392,7 +1366,6 @@ class _Latex2Sympy:
                 arg = self.convert_func_arg(func.func_single_arg_noparens())
 
             name = func.func_normal_single_arg().start.text[1:]
-
 
             # get pow
             func_pow = None
@@ -1531,19 +1504,19 @@ class _Latex2Sympy:
                 expr = self.handle_ceil(arg)
             elif name == 'det':
                 expr = arg.det()
-            
+
             elif name in ["sin", "cos", "tan", "csc", "sec", "cot"]:
                 if func_pow == -1:
                     name = "a" + name
                     func_pow = None
                 expr = getattr(sympy_trig, name)(arg, evaluate=False)
-            
+
             elif name in ["sinh", "cosh", "tanh"]:
                 if func_pow == -1:
                     name = "a" + name
                     func_pow = None
                 expr = getattr(sympy_hyperbolic, name)(arg, evaluate=False)
-            
+
             else:
                 expr = sympy.Function(name)(arg, evaluate=False)
 
@@ -1643,13 +1616,11 @@ class _Latex2Sympy:
         elif func.EXP_E():
             return self.handle_exp(func)
 
-
     def convert_func_arg(self, arg):
         if hasattr(arg, 'expr'):
             return self.convert_expr(arg.expr())
         else:
             return self.convert_mp(arg.mp_nofunc())
-
 
     def handle_integral(self, func):
         if func.additive():
@@ -1690,7 +1661,6 @@ class _Latex2Sympy:
         else:
             return sympy.Integral(integrand, int_var)
 
-
     def handle_sum_or_prod(self, func, name):
         val = self.convert_mp(func.mp())
         iter_var = self.convert_expr(func.subeq().equality().expr(0))
@@ -1704,7 +1674,6 @@ class _Latex2Sympy:
             return sympy.Sum(val, (iter_var, start, end))
         elif name == "product":
             return sympy.Product(val, (iter_var, start, end))
-
 
     def handle_limit(self, func):
         sub = func.limit_sub()
@@ -1725,7 +1694,6 @@ class _Latex2Sympy:
 
         return sympy.Limit(content, sub_var, approaching, direction)
 
-
     def handle_exp(self, func):
         if func.supexpr():
             if func.supexpr().expr():  # ^{expr}
@@ -1735,7 +1703,6 @@ class _Latex2Sympy:
         else:
             exp_arg = 1
         return sympy.exp(exp_arg)
-
 
     def handle_gcd_lcm(self, f, args):
         """
@@ -1750,7 +1717,6 @@ class _Latex2Sympy:
         # gcd() and lcm() don't support evaluate=False
         return sympy.UnevaluatedExpr(getattr(sympy, f)(args))
 
-
     def handle_floor(self, expr):
         """
         Apply floor() then return the floored expression.
@@ -1758,7 +1724,6 @@ class _Latex2Sympy:
         expr: Expr - sympy expression as an argument to floor()
         """
         return sympy_integers.floor(expr, evaluate=False)
-
 
     def handle_ceil(self, expr):
         """
@@ -1768,12 +1733,9 @@ class _Latex2Sympy:
         """
         return sympy_integers.ceiling(expr, evaluate=False)
 
-
-
     def get_differential_var(self, d):
         text = self.get_differential_var_str(d.getText())
         return self.create_symbol(text, enforce_case=True)
-
 
     def get_differential_var_str(self, text):
         for i in range(1, len(text)):
@@ -1787,8 +1749,9 @@ class _Latex2Sympy:
         return text
 
     def sympy2latex(self, tex):
-        result = sympy_latex(tex)
-        result = result.replace(r'\left[\begin{matrix}', r'\begin{pmatrix}', -1).replace(r'\end{matrix}\right]', r'\end{pmatrix}', -1)
+        result = sympy_latex(tex, imaginary_unit="ri", mat_str="matrix", mat_delim="(")
+        # result = sympy_latex(tex, imaginary_unit=r'\mathrm{i}', mat_str = "matrix", mat_delim="(")
+        result = result.replace(r'\left(\begin{matrix}', r'\begin{pmatrix}', -1).replace(r'\end{matrix}\right)', r'\end{pmatrix}', -1)
         return result
 
 
@@ -1875,6 +1838,8 @@ if __name__ == "__main__":
     print("\033[35m", latex2latex(r"\begin{vmatrix}\pi&0\\0&2\end{vmatrix}"), "\033[0m")
     print("\033[35m", latex2latex(r"\operatorname{eigenvalues}\begin{pmatrix}\pi&0\\0&1\end{pmatrix}"), "\033[0m")
     print("\033[35m", latex2latex(r"\operatorname{eigenvectors}\begin{pmatrix}\pi&0\\0&1\end{pmatrix}"), "\033[0m")
+    print("\033[35m", latex2latex(r"(i+1)^2"), "\033[0m")
+    print("\033[35m", latex2latex(r"(\mathrm{i}+1)^2"), "\033[0m")
     # print("\033[33m", latex2latex(r"\begin{pmatrix}3&0&2\\0&1&\pi\end{pmatrix}\xrightarrow[\text{DEL}~~c_{1}]{\text{DEL}~~r_{1}}"), "\033[0m")
     # print("\033[35m", latex2latex(r"\begin{pmatrix}3&0&2\\0&1&\pi\end{pmatrix}\xrightarrow{\text{INSERT}~~r_{1},\begin{pmatrix}0&0&0\end{pmatrix}}"), "\033[0m")
     # print(latex2latex(r"\operatorname{nullspace}(\begin{matrix}1&3&0\\-2&-6&0\\3&9&6\end{matrix})"))
